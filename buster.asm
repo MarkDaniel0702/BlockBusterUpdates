@@ -852,34 +852,31 @@ check_backspace:
     cmp bp, 0                     ; Is the cursor at the beginning?
     je get_name_loop              ; Yes, ignore backspace
 
-    dec bp                        ; Decrement character count/position
+    dec bp                        ; Decrement logical position first
     dec si                        ; Move buffer pointer back
 
-    ; Position cursor at the character to be replaced by underscore
-    mov ah, 02h
-    mov bh, 00h
-    mov dh, 0Fh                   ; Row for name input
-    mov dl, 0Ah                   ; Initial column offset
-    mov cl, bl                    ; Use CL (lower byte of BP) for current position
-    add dl, cl                    ; Calculate column
-    int 10h
+    ; --- Erase character on screen using standard Backspace -> Space -> Backspace sequence ---
+    ; 1. Move cursor left
+    mov ah, 0Eh                   ; Teletype output function
+    mov al, 08h                   ; ASCII code for Backspace
+    mov bh, 00h                   ; Page 0
+    int 10h                       ; Execute backspace (moves cursor left)
 
-    ; Print underscore to replace the character
-    mov ah, 0Ah                   ; Write character AT cursor (Does NOT advance cursor)
-    mov al, '_'                   ; Character to write (underscore)
-    mov bh, 00h                   ; Page number
-    mov cx, 1                     ; Number of times to write
-    mov bl, 07h                   ; Attribute for underscore
-    int 10h
+    ; 2. Print a space at the new cursor position to erase the character
+    mov ah, 0Eh                   ; Teletype output function
+    mov al, ' '                   ; Character to write (SPACE)
+    mov bh, 00h                   ; Page 0
+    mov bl, 07h                   ; Attribute (normal white/black)
+    int 10h                       ; Print space, cursor moves right
 
-    ; Move cursor back onto the underscore just printed (which is where it should be)
-    mov ah, 02h
-    mov bh, 00h
-    mov dh, 0Fh                   ; Row for name input
-    mov dl, 0Ah                   ; Initial column offset
-    mov cl, bl                    ; Use CL (lower byte of BP) for current position
-    add dl, cl                    ; Calculate column
-    int 10h
+    ; 3. Move the cursor back again onto the space just printed
+    mov ah, 0Eh                   ; Teletype output function
+    mov al, 08h                   ; ASCII code for Backspace
+    mov bh, 00h                   ; Page 0
+    int 10h                       ; Execute backspace (moves cursor left)
+
+    ; --- Also clear the character in the buffer ---
+    mov byte ptr [si], ' '        ; Put space in buffer where char was
 
     jmp get_name_loop             ; Get next character
 
@@ -924,7 +921,22 @@ process_char:
 name_done:
     ; --- Null-terminate the string ---
     ; BP now holds the length of the entered name
-    mov byte ptr [si], '$'        ; Add '$' terminator at the current SI position
+    ; Clear remaining underscores/spaces in the buffer after the entered name
+    mov cx, max_name_len
+    sub cx, bp                    ; CX = number of remaining positions
+    jcxz name_terminate           ; If 0, skip clearing
+clear_remaining_buffer:
+    mov byte ptr [si], ' '        ; Overwrite with space
+    inc si
+    loop clear_remaining_buffer
+
+name_terminate:
+    ; Place terminator right after the last typed character
+    lea si, playername
+    mov cl, bl                    ; Use BL (lower byte of BP) for length
+    mov ch, 0                     ; Clear CH
+    add si, cx                    ; SI points to position after last char
+    mov byte ptr [si], '$'        ; Add '$' terminator
 
     call StartPage
 
@@ -937,6 +949,7 @@ name_done:
     pop ax
     ret
 addName endp
+
 
 
 
