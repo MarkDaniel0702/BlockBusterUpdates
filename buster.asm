@@ -855,28 +855,28 @@ check_backspace:
     dec bp                        ; Decrement logical position first
     dec si                        ; Move buffer pointer back
 
-    ; --- Erase character on screen using standard Backspace -> Space -> Backspace sequence ---
+    ; --- Erase character on screen by replacing with underscore ---
     ; 1. Move cursor left
     mov ah, 0Eh                   ; Teletype output function
     mov al, 08h                   ; ASCII code for Backspace
     mov bh, 00h                   ; Page 0
     int 10h                       ; Execute backspace (moves cursor left)
 
-    ; 2. Print a space at the new cursor position to erase the character
+    ; 2. Print an underscore at the new cursor position to replace the character
     mov ah, 0Eh                   ; Teletype output function
-    mov al, ' '                   ; Character to write (SPACE)
+    mov al, '_'                   ; Character to write (UNDERSCORE)
     mov bh, 00h                   ; Page 0
     mov bl, 07h                   ; Attribute (normal white/black)
-    int 10h                       ; Print space, cursor moves right
+    int 10h                       ; Print underscore, cursor moves right
 
-    ; 3. Move the cursor back again onto the space just printed
+    ; 3. Move the cursor back again onto the underscore just printed
     mov ah, 0Eh                   ; Teletype output function
     mov al, 08h                   ; ASCII code for Backspace
     mov bh, 00h                   ; Page 0
     int 10h                       ; Execute backspace (moves cursor left)
 
     ; --- Also clear the character in the buffer ---
-    mov byte ptr [si], ' '        ; Put space in buffer where char was
+    mov byte ptr [si], ' '        ; Put space in buffer where char was (to mark as empty)
 
     jmp get_name_loop             ; Get next character
 
@@ -949,6 +949,7 @@ name_terminate:
     pop ax
     ret
 addName endp
+
 
 
 
