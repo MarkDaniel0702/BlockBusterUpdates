@@ -955,19 +955,19 @@ addName endp
 
 
 printName proc
-	;---prints the name on the specified position---
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 01h
-	mov dl, 22h
-	int 10h
-	
-	mov ah, 09h
-	lea dx, playername
-	int 21h
-	
-	ret 
-printName endp 
+    ;---prints the name on the specified position---
+    mov ah, 02h
+    mov bh, 00h                   ; Page number
+    mov dh, 01h                   ; Row (close to the top)
+    mov dl, 01h                   ; Column (moved to the left, e.g., column 3)
+    int 10h
+    
+    mov ah, 09h
+    lea dx, playername
+    int 21h
+    
+    ret 
+printName endp 
 
 
 ; ----------------------------------------
