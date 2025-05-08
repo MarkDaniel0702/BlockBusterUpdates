@@ -23,10 +23,19 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	timeCtr db 0                                              ;checks if a second has passed (timeCtr == 100 == 1 second)  
 	
 	entername_text db 'ENTER YOUR NAME:', '$' ; Updated prompt
-    playername db 21 dup (?)           ; Player name variable -> stores up to 20 chars + '$' terminator
-    ; nameLength_text db 'Name must be', '$'         ; Removed: No longer needed
-    ; nameLength_text1 db 'EXACTLY 5 characters', '$' ; Removed: No longer needed
-    max_name_len equ 20                ; Maximum length for player name 
+    playername db 21 dup (?)           ; Player name buffer, Max 20 chars + '$' terminator
+    max_name_len equ 20                ; Maximum length for player name
+    input_start_row db 0Fh             ; Row for name input
+    input_start_col db 0Ah             ; Starting column of the input *area*
+
+    ; --- New text variables ---
+    max_chars_msg db 'Max 20 characters$'
+    empty_name_err db 'Please enter a name!$'
+    error_line_clear db '                      $' ; String of spaces to clear error line
+    error_msg_row db 11h               ; Row to display error messages (e.g., row 17)
+    error_msg_col db 0Ah               ; Column for error messages
+    error_msg_displayed db 0           ; Flag: 0 = no error displayed, 1 = error displayed
+	
 	
 	controlB_text db '[B]Back', '$'                           
 	control1_text db 'MOVE PADDLE', '$'
@@ -483,6 +492,8 @@ local drawscore1, noSound
 endm
 
 
+
+
 main proc
     mov ax,@data                          ;incorporates the data values
     mov ds,ax			        
@@ -805,29 +816,41 @@ addName proc
     call drawBg
     call drawName                 ; "ENTER YOUR NAME" title
     mov control, 0
+    ; mov error_msg_displayed, 0    ; Removed
 
-    ; --- Position cursor for initial underscore display ---
+    ; --- Display "Max 20 characters" message ---
     mov ah, 02h
     mov bh, 00h
-    mov dh, 0Fh                   ; Row for name input (e.g., row 15 decimal)
-    mov dl, 0Ah                   ; Starting column for name input (e.g., column 10 decimal)
+    mov dh, 11h                   ; Row for message (Moved down one row from 10h to 11h)
+    mov dl, input_start_col       ; Align with input start column
+    int 10h
+    mov ah, 09h
+    lea dx, max_chars_msg
+    int 21h
+    ; --- End message display ---
+
+    ; --- Position cursor for initial dot display ---
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row       ; Use variable for row (0Fh)
+    mov dl, input_start_col       ; Use variable for column (0Ah)
     int 10h
 
-    ; --- Display initial underscores ---
-    mov cx, max_name_len          ; Number of underscores to print
-print_underscores_loop:
+    ; --- Display initial dots ---
+    mov cx, max_name_len          ; Number of dots to print
+print_dots_loop:
     mov ah, 0Eh                   ; Teletype output (prints char and advances cursor)
-    mov al, '_'                   ; Character to print
+    mov al, '.'                   ; Character to print (DOT)
     mov bh, 00h                   ; Page 0
     mov bl, 07h                   ; Attribute (e.g., normal white on black)
     int 10h
-    loop print_underscores_loop
+    loop print_dots_loop
 
     ; --- Position cursor back at the beginning of the input area ---
     mov ah, 02h
     mov bh, 00h
-    mov dh, 0Fh                   ; Row for name input
-    mov dl, 0Ah                   ; Starting column for name input
+    mov dh, input_start_row       ; Use variable for row
+    mov dl, input_start_col       ; Use variable for column
     int 10h
 
     ; --- Initialize for input loop ---
@@ -841,35 +864,36 @@ get_name_loop:
     ; --- Check for Enter key (Carriage Return) ---
     cmp al, 0Dh                   ; Is it Enter key?
     jne check_backspace           ; If not Enter, continue checking other keys
-    jmp name_done                 ; If it IS Enter, jump unconditionally to name_done
+    jmp name_done_finalize        ; If it IS Enter, jump directly to finalize
 
 check_backspace:
     ; --- Check for Backspace key ---
     cmp ah, 0Eh                   ; Backspace scan code? (Use AH for scan code)
     jne process_char              ; No, process it as a regular character
 
-    ; --- Handle Backspace ---
+    ; --- Handle Backspace (Replace with dot) ---
     cmp bp, 0                     ; Is the cursor at the beginning?
     je get_name_loop              ; Yes, ignore backspace
+
+    ; --- Removed error message clearing ---
 
     dec bp                        ; Decrement logical position first
     dec si                        ; Move buffer pointer back
 
-    ; --- Erase character on screen by replacing with underscore ---
     ; 1. Move cursor left
     mov ah, 0Eh                   ; Teletype output function
     mov al, 08h                   ; ASCII code for Backspace
     mov bh, 00h                   ; Page 0
     int 10h                       ; Execute backspace (moves cursor left)
 
-    ; 2. Print an underscore at the new cursor position to replace the character
+    ; 2. Print a dot at the new cursor position to replace the character
     mov ah, 0Eh                   ; Teletype output function
-    mov al, '_'                   ; Character to write (UNDERSCORE)
+    mov al, '.'                   ; Character to write (DOT)
     mov bh, 00h                   ; Page 0
     mov bl, 07h                   ; Attribute (normal white/black)
-    int 10h                       ; Print underscore, cursor moves right
+    int 10h                       ; Print dot, cursor moves right
 
-    ; 3. Move the cursor back again onto the underscore just printed
+    ; 3. Move the cursor back again onto the dot just printed
     mov ah, 0Eh                   ; Teletype output function
     mov al, 08h                   ; ASCII code for Backspace
     mov bh, 00h                   ; Page 0
@@ -897,12 +921,14 @@ process_char:
 
     ; --- Handle Printable Character ---
     cmp bp, max_name_len          ; Is cursor at or beyond max length?
-    jae get_name_loop             ; If so, can't type more
+    jae get_name_loop             ; If so, ignore input (no beep needed now)
+
+    ; --- Removed error message clearing ---
 
     ; Store the character
     mov [si], al                  ; Store character in buffer
 
-    ; Display the character using Teletype - this overwrites the underscore
+    ; Display the character using Teletype - this overwrites the dot
     ; at the current cursor position AND advances the cursor automatically.
     mov ah, 0Eh                   ; Teletype output
     ; AL already contains the character from int 16h
@@ -914,14 +940,21 @@ process_char:
     inc bp                        ; Increment character count/position
     inc si                        ; Advance buffer pointer
 
-    ; No need to manually set cursor position here, ah=0Eh did it.
-
     jmp get_name_loop             ; Get next character
 
-name_done:
+; max_len_reached: ; Removed this label and beep
+    ; jmp get_name_loop
+
+; name_done_check: ; Removed this label and empty check
+
+; name_valid: ; Renamed label
+name_done_finalize:
+    ; --- Name is valid (or empty, which is now allowed), proceed to terminate and exit ---
+    ; --- Removed error message clearing ---
+
     ; --- Null-terminate the string ---
     ; BP now holds the length of the entered name
-    ; Clear remaining underscores/spaces in the buffer after the entered name
+    ; Clear remaining spaces in the buffer after the entered name
     mov cx, max_name_len
     sub cx, bp                    ; CX = number of remaining positions
     jcxz name_terminate           ; If 0, skip clearing
