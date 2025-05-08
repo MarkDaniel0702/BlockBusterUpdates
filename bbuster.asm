@@ -22,10 +22,19 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	ones dw 57                                                ;ones position in timer (9) 
 	timeCtr db 0                                              ;checks if a second has passed (timeCtr == 100 == 1 second)  
 	
-	entername_text db 'ENTER YOUR NAME:', '$'                 
-	playername db 'twice', '$'                                ;player name variable -> stores the 5 char name 
-	nameLength_text db 'Name should be', '$'                  
-	nameLength_text1 db 'EXACTLY 5 characters', '$'
+	entername_text db 'ENTER YOUR NAME:', '$' ; Updated prompt
+    playername db 21 dup (?)           ; Player name buffer, Max 20 chars + '$' terminator
+    max_name_len equ 20                ; Maximum length for player name
+    input_start_row db 0Fh             ; Row for name input
+    input_start_col db 0Ah             ; Starting column of the input *area*
+	max_chars_msg db 'Max 20 characters$' ; Removed spaces here
+	; You'll need to add this variable to your data segment
+	middle_col db 0                   ; To store the middle column position	
+	error_msg_row db 14h              ; Row for error message (adjust as needed)
+    name_required_msg db 'Please enter your name!$'
+	max_length_msg db 'Max Character limit reached!$'        ; Max length error
+	
+    
 	
 	controlB_text db '[B]Back', '$'                           
 	control1_text db 'MOVE PADDLE', '$'
@@ -482,6 +491,8 @@ local drawscore1, noSound
 endm
 
 
+
+
 main proc
     mov ax,@data                          ;incorporates the data values
     mov ds,ax			        
@@ -724,203 +735,523 @@ drawControl endp
 ;                  Name
 ; ----------------------------------------
 drawName proc
-	drawTitle 78, 49, 4, 20, 0Dh          ;calls drawTitle macro to print each horizontal and vertical line of the letter E 
-	drawTitle 78, 49, 12, 4, 0Dh          ;78 -> x-loc of first pixel, 49 -> y-loc, 12 -> width of line, 4 -> heigh of line, 0Dh -> color
-	drawTitle 78, 57, 10, 4, 0Dh
-	drawTitle 78, 65, 12, 4, 0Dh
+	drawTitle 80, 49, 4, 20, 0Dh          ;calls drawTitle macro to print each horizontal and vertical line of the letter E 
+	drawTitle 80, 49, 12, 4, 0Dh          ;78 -> x-loc of first pixel, 49 -> y-loc, 12 -> width of line, 4 -> heigh of line, 0Dh -> color
+	drawTitle 80, 57, 10, 4, 0Dh
+	drawTitle 80, 65, 12, 4, 0Dh
 	
-	drawTitle 94, 49, 4, 20, 0Dh          ;draw N 
-	drawTitle 94, 50, 13, 4, 0Dh
-	drawTitle 104, 50, 4, 19, 0Dh
+	drawTitle 96, 49, 4, 20, 0Dh          ;draw N 
+	drawTitle 96, 50, 13, 4, 0Dh
+	drawTitle 106, 50, 4, 19, 0Dh
 	
-	drawTitle 111, 49, 16, 4, 0Dh         ;draw T
-	drawTitle 117, 49, 4, 20, 0Dh
+	drawTitle 113, 49, 16, 4, 0Dh         ;draw T
+	drawTitle 119, 49, 4, 20, 0Dh
 	
-	drawTitle 131, 49, 4, 20, 0Dh         ;draw E
-	drawTitle 131, 49, 12, 4, 0Dh
-	drawTitle 131, 57, 10, 4, 0Dh
-	drawTitle 131, 65, 12, 4, 0Dh
+	drawTitle 134, 49, 4, 20, 0Dh         ;draw E
+	drawTitle 134, 49, 12, 4, 0Dh
+	drawTitle 134, 57, 10, 4, 0Dh
+	drawTitle 134, 65, 12, 4, 0Dh
 	
-	drawTitle 147, 49, 4, 20, 0Dh         ;draw R
-	drawTitle 147, 49, 14, 4, 0Dh
-	drawTitle 158, 49, 4, 13, 0Dh
-	drawTitle 147, 59, 15, 4, 0Dh
-	drawTitle 156, 59, 4, 10, 0Dh
+	drawTitle 149, 49, 4, 20, 0Dh         ;draw R
+	drawTitle 149, 49, 14, 4, 0Dh
+	drawTitle 160, 49, 4, 13, 0Dh
+	drawTitle 149, 59, 15, 4, 0Dh
+	drawTitle 158, 59, 4, 10, 0Dh
 	
-	drawTitle 172, 49, 4, 12, 0Dh         ;draw Y
-	drawTitle 172, 58, 16, 4, 0Dh
-	drawTitle 184, 49, 4, 12, 0Dh
-	drawTitle 178, 58, 4, 11, 0Dh
+	drawTitle 174, 49, 4, 12, 0Dh         ;draw Y
+	drawTitle 174, 58, 16, 4, 0Dh
+	drawTitle 186, 49, 4, 12, 0Dh
+	drawTitle 180, 58, 4, 11, 0Dh
 	
-	drawTitle 190, 49, 4, 20, 0Dh         ;draw O  
-	drawTitle 190, 49, 14, 4, 0Dh
-	drawTitle 201, 49, 4, 20, 0Dh
-	drawTitle 190, 65, 14, 4, 0Dh
+	drawTitle 192, 49, 4, 20, 0Dh         ;draw O  
+	drawTitle 192, 49, 14, 4, 0Dh
+	drawTitle 203, 49, 4, 20, 0Dh
+	drawTitle 192, 65, 14, 4, 0Dh
 	
-	drawTitle 207, 49, 4, 20, 0Dh         ;draw U 
-	drawTitle 207, 65, 14, 4, 0Dh
-	drawTitle 218, 49, 4, 20, 0Dh
+	drawTitle 209, 49, 4, 20, 0Dh         ;draw U 
+	drawTitle 209, 65, 14, 4, 0Dh
+	drawTitle 220, 49, 4, 20, 0Dh
 	
-	drawTitle 224, 49, 4, 20, 0Dh         ;draw R
-	drawTitle 224, 49, 14, 4, 0Dh
-	drawTitle 235, 49, 4, 13, 0Dh
-	drawTitle 224, 59, 14, 4, 0Dh
-	drawTitle 233, 59, 4, 10, 0Dh
+	drawTitle 226, 49, 4, 20, 0Dh         ;draw R
+	drawTitle 226, 49, 14, 4, 0Dh
+	drawTitle 237, 49, 4, 13, 0Dh
+	drawTitle 226, 59, 14, 4, 0Dh
+	drawTitle 235, 59, 4, 10, 0Dh
 	
 	drawTitle 125, 79, 14, 4, 0Dh         ;draw N
 	drawTitle 125, 79, 4, 20, 0Dh
 	drawTitle 136, 79, 4, 20, 0Dh
 	
-	drawTitle 144, 79, 4, 20, 0Dh         ;draw A
-	drawTitle 144, 79, 14, 4, 0Dh
-	drawTitle 155, 79, 4, 20, 0Dh
-	drawTitle 144, 88, 14, 4, 0Dh
+	drawTitle 146, 79, 4, 20, 0Dh         ;draw A
+	drawTitle 146, 79, 14, 4, 0Dh
+	drawTitle 157, 79, 4, 20, 0Dh
+	drawTitle 146, 88, 14, 4, 0Dh
 	
-	drawTitle 162, 79, 4, 20, 0Dh         ;draw M
-	drawTitle 162, 79, 17, 4, 0Dh
-	drawTitle 176, 79, 4, 20, 0Dh
-	drawTitle 169, 79, 4, 9, 0Dh
+	drawTitle 164, 79, 4, 20, 0Dh         ;draw M
+	drawTitle 164, 79, 17, 4, 0Dh
+	drawTitle 178, 79, 4, 20, 0Dh
+	drawTitle 171, 79, 4, 9, 0Dh
 	
-	drawTitle 183, 79, 4, 20, 0Dh         ;draw E
-	drawTitle 183, 79, 12, 4, 0Dh
-	drawTitle 183, 87, 10, 4, 0Dh
-	drawTitle 183, 95, 12, 4, 0Dh
+	drawTitle 185, 79, 4, 20, 0Dh         ;draw E
+	drawTitle 185, 79, 12, 4, 0Dh
+	drawTitle 185, 87, 10, 4, 0Dh
+	drawTitle 185, 95, 12, 4, 0Dh
 	
 	ret 
 drawName endp
 
 addName proc
-	push ax
-	push bx
-	push cx
-	push dx
-	
-	call setVideoMode                     ;clears screen 
-	call drawBoundary                     ;draws boundary (line border) 
-	call drawBorder                       ;draws random pixel to the screen outside the line border 
-	call drawBg                           ;draws random pixel to the screen inside the line border 
-	call drawName                         ;draws the "ENTER YOUR NAME" text on the screen
-	mov control, 0                        ;sets the control var to 0 -> the control page will not be printed when StartPage proc is called
-	
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 12h
-	mov dl, 0Dh
-	int 10h
-	
-	mov ah, 09h
-	lea dx, nameLength_text
-	int 21h
-	
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 14h
-	mov dl, 0Ah
-	int 10h
-	
-	mov ah, 09h
-	lea dx, nameLength_text1
-	int 21h
-	
-	mov cx, 5                             ;number of times the blank line will be printed (no. of characters needed in the name)
-    mov bp, 0                             ;sets pointer to the 0
-    blank:
-		mov ah, 02h                       
-        mov dh, 0Fh
-        mov dl, 12h
-        add dx, bp                        ;adds the value of the bp to the value of dx (if bp=2 => dx=0F14h) 
-        inc bp                            ;increments the value of dx (0F12h => 0F13h) -> moves the pointer one cursor position to the right 
-        mov bh, 00h                         
-        int 10h
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push bp
+    push di
 
-        mov ax, 092Dh                     ;09h -> write char instruction; outputs the specified character (2Dh -> underscore) 
-        mov bl, 09h                       ;color 
-        mov bh, 00h
-        push cx                           ;pushes the current cx (number of iterations) to the stack as cx will be used in the instruction
-        mov cx, 1                         ;sets the number of times to print char 
-        int 10h
-        pop cx                            ;redefined cx to the no. of iterations after instruction if executed 
-		loop blank 
+    call setVideoMode             ; Clears screen
+    ;call drawBoundary
+    call drawBorder
+    call drawBg
+    call drawName                 ; "ENTER YOUR NAME" title
+    mov control, 0
 
-	lea si, playername                    ;sets the offset of playername var as source 
-	mov cx, 6                             ;no. of iterations (5 char for name + 1 enter key) 
-	mov bp, 0
-	get_name:
-		mov ah, 07h                       ;read char input instruction 
-		int 21h
-		
-		mov ah, 02h           
-		mov dh, 0Fh  
-		mov dl, 12h
-		add dx, bp            
-		inc bp                 
-		mov bh, 00h
-		int 10h
-	
-		cmp al, 08h                       ;checks if backspace is pressed 
-		jne printchar1                    ;if not, print char 
-		
-		mov ah, 02h                       
-		dec dx                            ;moves cursor position to previous location 
-		sub bp, 2                         ;sets the pointer two spaces back 
-		dec si                            ;sets the offset of playername var to the previous char 
-		mov bh, 00h
-		int 10h
-		
-		mov ax, 0A2Dh                     ;overwrites current char (e.g. 'A' => '-')
-		mov bh, 00h 
-		mov cx, 1
-		int 10h
-		
-		jmp get_name                      ;reads char once more 
-		
-		;---prints char on the screen---
-		printchar1:
-			mov ah, 0Ah                                     
-			mov bh, 00h 
-			mov bl, 09h 
-			push cx
-			mov cx, 1
-			int 10h
-			pop cx
-		
-			mov byte ptr [si], al         ;overwrites char at the position of the pointer in the variable 
-			inc si                        ;moves to next char 
-	
-	cmp bp, 5                             ;checks if the number of chars printed is 5
-	je save                               ;if yes, then jump to save 
-	jmp get_name                          ;if not, continue receiving char input 
-	
-	save:
-		mov ah, 0h                     
-		int 16h
-		cmp ax, 1C0Dh                     ;checks if char read is enter key 
-		jne get_name                      ;if not, continue reveiving input until enter key is pressed 
-		
-		call StartPage                    ;if yes, call StartPage to print the main menu 
-		ret 
-	
-	pop ax
-	pop bx
-	pop cx
-	pop dx
-	ret
+    ; --- Display "Max 20 characters" message ---
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, 11h                   ; Row for message
+    mov dl, 0Ch                   ; Align with input start column
+    int 10h
+    mov ah, 09h
+    lea dx, max_chars_msg
+    int 21h
+
+    ; --- Calculate middle position for input ---
+    mov ax, max_name_len          ; Get max name length
+    mov cl, 2
+    div cl                        ; Divide by 2 to get half length
+    mov cl, al                    ; Store half length in CL
+    mov al, input_start_col       ; Get starting column
+    add al, cl                    ; Add half length to get middle position
+    mov middle_col, al            ; Store middle position
+
+    ; --- Display a single dash in the middle ---
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row       ; Row position
+    mov dl, middle_col            ; Middle column position
+    int 10h
+
+    mov ah, 0Eh                   ; Teletype output
+    mov al, '-'                   ; Dash character
+    mov bh, 00h                   ; Page 0
+    mov bl, 09h                   ; Attribute (normal white on black)
+    int 10h
+
+    ; --- Initialize for input loop ---
+    lea si, playername            ; Point SI to the start of the buffer
+    mov bp, 0                     ; Use BP as character counter/cursor offset
+    
+    ; --- Reset cursor position to middle ---
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row       ; Row position
+    mov dl, middle_col            ; Middle column position
+    int 10h
+
+    ; --- Clear error message row initially ---
+    call clear_error_message
+
+get_name_loop:
+    mov ah, 00h                   ; Get keystroke
+    int 16h                       ; BIOS keyboard service
+
+    ; --- Check for Enter key ---
+    cmp al, 0Dh                   ; Is it Enter key?
+    jz validate_name              ; Go to validation routine
+    
+    ; --- Check for Backspace key ---
+    cmp ah, 0Eh                   ; Backspace scan code?
+    jz do_backspace               ; Handle backspace
+    
+    ; --- Check special keys ---
+    cmp ah, 4Bh                   ; Left arrow?
+    jz get_name_loop
+    cmp ah, 4Dh                   ; Right arrow? 
+    jz get_name_loop
+    cmp ah, 53h                   ; Delete key?
+    jz get_name_loop
+    
+    ; --- Check if printable character ---
+    cmp al, 20h                   ; Is ASCII >= space?
+    jb get_name_loop              ; If < 20h, ignore
+    cmp al, 7Eh                   ; Is ASCII <= tilde?
+    ja get_name_loop              ; If > 7Eh, ignore
+    
+    ; --- Check if at max length ---
+    cmp bp, max_name_len          ; Check against max length
+    jb do_printable               ; If below max, handle character
+    call show_max_length_error    ; Show error when max length reached
+    jmp get_name_loop             ; Otherwise, ignore and get next
+
+; Validate if a name was entered before proceeding
+validate_name:
+    cmp bp, 0                     ; Check if any characters were entered
+    jnz do_finalize               ; If name entered, proceed
+    
+    ; Display error message for empty name
+    call show_error_message
+    jmp get_name_loop             ; Continue input loop
+
+; Handle Enter key with valid name - finalize input
+do_finalize:
+    ; Clear any error message that might be displayed
+    call clear_error_message
+    jmp name_done_finalize
+    
+; Handle Backspace key
+do_backspace:
+    ; Check if at beginning
+    cmp bp, 0
+    jz get_name_loop              ; If at beginning, ignore
+    
+    ; Do backspace processing
+    dec bp                        ; Decrement counter
+    dec si                        ; Move buffer pointer back
+    mov byte ptr [si], ' '        ; Clear character in buffer
+    
+    ; Call redraw routine
+    call redraw_input_area
+    jmp get_name_loop
+    
+; Handle printable character
+do_printable:
+    ; If first character after error, clear error message
+    cmp bp, 0
+    jnz skip_clear_error
+    call clear_error_message      ; Clear error message when typing begins
+    
+skip_clear_error:
+    ; Store character and advance
+    mov [si], al                  ; Store character
+    inc bp                        ; Increment counter
+    inc si                        ; Advance pointer
+    
+    ; Call redraw routine
+    call redraw_input_area
+    jmp get_name_loop
+
+name_done_finalize:
+    ; --- Null-terminate the string ---
+    mov si, offset playername     ; Point SI to start of name
+    add si, bp                    ; Add length (BP) to point SI after last entered character
+    mov cx, max_name_len
+    sub cx, bp                    ; CX = number of remaining positions
+    jcxz name_terminate           ; If 0 (length == 20), skip clearing
+
+clear_remaining_buffer:
+    mov byte ptr [si], ' '        ; Overwrite with space
+    inc si
+    loop clear_remaining_buffer   ; Loop CX times
+
+name_terminate:
+    ; Place terminator right after the last typed character
+    mov byte ptr [si], '$'        ; Add '$' terminator
+
+    call StartPage
+
+    pop di
+    pop bp
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
 addName endp
 
+; Subroutine to display empty name error message
+show_error_message proc
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    
+    ; First clear the error message area
+    call clear_error_message
+	
+	call beep                     ; Play sound for error
+    
+    ; Display the error message
+    mov ah, 02h                   ; Set cursor position
+    mov bh, 00h                   ; Page 0
+    mov dh, error_msg_row         ; Row for error message
+    mov dl, 09h                   ; Column position (align with other messages)
+    int 10h
+    
+    ; We'll use BIOS teletype to display characters in red
+    lea si, name_required_msg     ; Point to error message
+    
+error_msg_loop:
+    mov al, [si]                  ; Get character
+    cmp al, '$'                   ; Check for end of string
+    je error_msg_done             ; If end, we're done
+    
+    mov ah, 0Eh                   ; Teletype output
+    mov bh, 00h                   ; Page 0
+    mov bl, 04h                   ; Set color to red (04h)
+    int 10h                       ; Display character in red
+    
+    inc si                        ; Next character
+    jmp error_msg_loop            ; Continue loop
+    
+error_msg_done:
+    ; Reset cursor back to input position
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row
+    mov dl, middle_col
+    int 10h
+    
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+show_error_message endp
+
+; Subroutine to display max length error message
+show_max_length_error proc
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    
+    ; First clear the error message area
+    call clear_error_message
+	
+	call beep                     ; Play sound for error
+    
+    ; Display the error message
+    mov ah, 02h                   ; Set cursor position
+    mov bh, 00h                   ; Page 0
+    mov dh, error_msg_row         ; Row for error message
+    mov dl, 07h                   ; Column position (align with other messages)
+    int 10h
+    
+    ; Display characters in red
+    lea si, max_length_msg        ; Point to error message
+    
+max_length_error_loop:
+    mov al, [si]                  ; Get character
+    cmp al, '$'                   ; Check for end of string
+    je max_length_error_done      ; If end, we're done
+    
+    mov ah, 0Eh                   ; Teletype output
+    mov bh, 00h                   ; Page 0
+    mov bl, 04h                   ; Set color to red (04h)
+    int 10h                       ; Display character in red
+    
+    inc si                        ; Next character
+    jmp max_length_error_loop     ; Continue loop
+    
+max_length_error_done:
+    ; Reset cursor back to input position
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row
+    mov dl, middle_col
+    int 10h
+    
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+show_max_length_error endp
+
+; Subroutine to clear error message area
+clear_error_message proc
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    ; Set cursor to error message row
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, error_msg_row         ; Row for error message
+    mov dl, 00h                   ; Start from column 0
+    int 10h
+    
+    ; Clear entire row
+    mov cx, 80                    ; 80 columns
+    mov ah, 0Eh                   ; Teletype output
+    mov al, ' '                   ; Space character
+    mov bh, 00h                   ; Page 0
+    
+clear_error_loop:
+    int 10h                       ; Output space
+    loop clear_error_loop
+    
+    ; Reset cursor back to input position
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row
+    mov dl, middle_col
+    int 10h
+    
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+clear_error_message endp
+
+; Subroutine to redraw input area with centered text
+redraw_input_area proc
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    
+    ; First, clear the entire row
+    mov ah, 02h                   ; Set cursor position
+    mov bh, 00h                   ; Page 0
+    mov dh, input_start_row       ; Row
+    mov dl, input_start_col       ; Start column
+    int 10h
+    
+    mov cx, max_name_len          ; Number of positions to clear
+    mov ah, 0Eh                   ; Teletype output
+    mov al, ' '                   ; Space character (to clear)
+    mov bh, 00h                   ; Page 0
+clear_spaces:
+    int 10h                       ; Output space
+    loop clear_spaces
+
+    ; Check if there's any text
+    cmp bp, 0                     ; Any characters entered?
+    jnz draw_text                 ; If yes, draw the text
+    
+    ; No text, display single dash in middle
+    mov ah, 02h                   ; Set cursor position
+    mov bh, 00h                   ; Page 0
+    mov dh, input_start_row       ; Row
+    mov dl, middle_col            ; Middle column
+    int 10h
+    
+    mov ah, 0Eh                   ; Teletype output
+    mov al, '-'                   ; Dash character
+    mov bh, 00h                   ; Page 0
+    mov bl, 09h                   ; Normal attribute
+    int 10h
+    jmp redraw_exit
+    
+draw_text:
+    ; Calculate where to start drawing text
+    ; Text centered = middle - (length/2)
+    mov ax, bp                    ; Get length in AX
+    mov cl, 2                     ; Divisor
+    div cl                        ; Divide by 2
+    mov cl, al                    ; Half length in CL
+    
+    ; Check if odd or even length
+    test bp, 1                    ; Test if odd
+    jz length_is_even
+    
+    ; Odd length calculation
+    mov al, middle_col            ; Get middle position
+    sub al, cl                    ; Subtract half length
+    jmp check_position
+    
+length_is_even:
+    mov al, middle_col            ; Get middle position
+    sub al, cl                    ; Subtract half length
+    
+check_position:
+    ; Ensure we don't go below start column
+    cmp al, input_start_col
+    jae set_position
+    mov al, input_start_col       ; Limit to start column
+    
+set_position:
+    ; Set cursor to calculated position
+    mov dl, al                    ; Column position in DL
+    mov ah, 02h                   ; Set cursor position
+    mov bh, 00h                   ; Page 0
+    mov dh, input_start_row       ; Row
+    int 10h
+    
+    ; Draw all characters in buffer
+    lea si, playername            ; Point to name buffer
+    mov cx, bp                    ; Character count
+    
+draw_chars:
+    mov ah, 0Eh                   ; Teletype output
+    mov al, [si]                  ; Get character
+    mov bh, 00h                   ; Page 0
+    mov bl, 09h                   ; Bright attribute
+    int 10h
+    inc si                        ; Next character
+    loop draw_chars
+    
+redraw_exit:
+    ; Position cursor at the end of the text for next input
+    cmp bp, 0                     ; Any characters entered?
+    jz reset_to_middle            ; If no, reset to middle
+    
+    ; Calculate cursor position after text
+    mov ah, 03h                   ; Get cursor position
+    mov bh, 00h                   ; Page 0
+    int 10h                       ; DH=row, DL=column
+    
+    ; DL now contains the column after the last character
+    mov ah, 02h                   ; Set cursor position
+    ; BH and DH remain unchanged
+    int 10h
+    jmp finish_redraw
+    
+reset_to_middle:
+    ; Reset cursor to middle position
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row
+    mov dl, middle_col
+    int 10h
+    
+finish_redraw:
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+redraw_input_area endp
+
+
+
+
+
 printName proc
-	;---prints the name on the specified position---
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 01h
-	mov dl, 22h
-	int 10h
-	
-	mov ah, 09h
-	lea dx, playername
-	int 21h
-	
-	ret 
-printName endp 
+    ;---prints the name on the specified position---
+    mov ah, 02h
+    mov bh, 00h                   ; Page number
+    mov dh, 01h                   ; Row (close to the top)
+    mov dl, 01h                   ; Column (moved to the left, e.g., column 3)
+    int 10h
+    
+    mov ah, 09h
+    lea dx, playername
+    int 21h
+    
+    ret 
+printName endp 
 
 
 ; ----------------------------------------
@@ -3023,36 +3354,36 @@ deleteSelect proc
 deleteSelect endp
 
 drawBoundary proc
-	mov color, 07h                        ;sets the color to light gray 
-    
-	;---top---
-    mov startx, 22                        ;sets the starting x-loc to 22 
-    mov endx, 300                         ;sets the ending x-loc of the line to 300 
-    mov starty, 22                        ;sets the starting y-loc to 22
-    mov endy, 23                          ;sets the ending y-loc of the line to 23 (height of line=1px)
+    mov color, 07h             ; Sets the color to light gray
+
+    ;---top---
+    mov startx, 22
+    mov endx, 300
+    mov starty, 22
+    mov endy, 23               ; Draws y=22 from x=22 to x=299
     call draw
 
-	;---right---
-    mov startx, 299                     
-    mov endx, 300
+    ;---right---
+    mov startx, 299
+    mov endx, 300              ; Draws x=299 from y=22 to y=179
     mov starty, 22
     mov endy, 180
     call draw
-    
-	;---left--- 
-    mov startx,22                       
-    mov endx,23
-    mov starty,22
-    mov endy,180
+
+    ;---left---
+    mov startx, 22
+    mov endx, 23               ; Draws x=22 from y=22 to y=179
+    mov starty, 22
+    mov endy, 180
     call draw
- 
-	;---bottom---
-    mov startx, 22                      
+
+    ;---bottom---
+    mov startx, 22
     mov endx, 300
-    mov starty,179
-    mov endy,180
-    call draw 
-   
+    mov starty, 179            ; Draws y=179 from x=22 to x=299
+    mov endy, 180
+    call draw
+
     ret
 drawBoundary endp
 
@@ -3190,4 +3521,4 @@ beep proc
 
 	ret
 beep endp
-end main
+endp main
