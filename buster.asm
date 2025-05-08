@@ -30,13 +30,11 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	max_chars_msg db 'Max 20 characters$' ; Removed spaces here
 	; You'll need to add this variable to your data segment
 	middle_col db 0                   ; To store the middle column position	
-    ; --- New text variables ---
-    empty_name_err db 'Please enter a name!$'
-    error_line_clear db '                      $' ; String of spaces to clear error line
-    error_msg_row db 11h               ; Row to display error messages (e.g., row 17)
-    error_msg_col db 0Ah               ; Column for error messages
-    error_msg_displayed db 0           ; Flag: 0 = no error displayed, 1 = error displayed
+	error_msg_row db 14h              ; Row for error message (adjust as needed)
+    name_required_msg db 'Please enter your name!$'
+	max_length_msg db 'Max Character limit reached!$'        ; Max length error
 	
+    
 	
 	controlB_text db '[B]Back', '$'                           
 	control1_text db 'MOVE PADDLE', '$'
@@ -861,13 +859,16 @@ addName proc
     mov dl, middle_col            ; Middle column position
     int 10h
 
+    ; --- Clear error message row initially ---
+    call clear_error_message
+
 get_name_loop:
     mov ah, 00h                   ; Get keystroke
     int 16h                       ; BIOS keyboard service
 
     ; --- Check for Enter key ---
     cmp al, 0Dh                   ; Is it Enter key?
-    jz do_finalize                ; If Enter, go to finalize routine
+    jz validate_name              ; Go to validation routine
     
     ; --- Check for Backspace key ---
     cmp ah, 0Eh                   ; Backspace scan code?
@@ -876,7 +877,7 @@ get_name_loop:
     ; --- Check special keys ---
     cmp ah, 4Bh                   ; Left arrow?
     jz get_name_loop
-    cmp ah, 4Dh                   ; Right arrow?
+    cmp ah, 4Dh                   ; Right arrow? 
     jz get_name_loop
     cmp ah, 53h                   ; Delete key?
     jz get_name_loop
@@ -890,10 +891,22 @@ get_name_loop:
     ; --- Check if at max length ---
     cmp bp, max_name_len          ; Check against max length
     jb do_printable               ; If below max, handle character
+    call show_max_length_error    ; Show error when max length reached
     jmp get_name_loop             ; Otherwise, ignore and get next
 
-; Handle Enter key - finalize input
+; Validate if a name was entered before proceeding
+validate_name:
+    cmp bp, 0                     ; Check if any characters were entered
+    jnz do_finalize               ; If name entered, proceed
+    
+    ; Display error message for empty name
+    call show_error_message
+    jmp get_name_loop             ; Continue input loop
+
+; Handle Enter key with valid name - finalize input
 do_finalize:
+    ; Clear any error message that might be displayed
+    call clear_error_message
     jmp name_done_finalize
     
 ; Handle Backspace key
@@ -913,6 +926,12 @@ do_backspace:
     
 ; Handle printable character
 do_printable:
+    ; If first character after error, clear error message
+    cmp bp, 0
+    jnz skip_clear_error
+    call clear_error_message      ; Clear error message when typing begins
+    
+skip_clear_error:
     ; Store character and advance
     mov [si], al                  ; Store character
     inc bp                        ; Increment counter
@@ -921,6 +940,114 @@ do_printable:
     ; Call redraw routine
     call redraw_input_area
     jmp get_name_loop
+
+; Subroutine to display empty name error message
+show_error_message proc
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    ; First clear the error message area
+    call clear_error_message
+    
+    ; Display the error message
+    mov ah, 02h                   ; Set cursor position
+    mov bh, 00h                   ; Page 0
+    mov dh, error_msg_row         ; Row for error message
+    mov dl, 09h                   ; Column position (align with other messages)
+    int 10h
+    
+    mov ah, 09h                   ; Display string
+    lea dx, name_required_msg     ; Error message
+    int 21h
+    
+    ; Reset cursor back to input position
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row
+    mov dl, middle_col
+    int 10h
+    
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+show_error_message endp
+
+; Subroutine to display max length error message
+show_max_length_error proc
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    ; First clear the error message area
+    call clear_error_message
+    
+    ; Display the error message
+    mov ah, 02h                   ; Set cursor position
+    mov bh, 00h                   ; Page 0
+    mov dh, error_msg_row         ; Row for error message
+    mov dl, 07h                   ; Column position (align with other messages)
+    int 10h
+    
+    mov ah, 09h                   ; Display string
+    lea dx, max_length_msg        ; Max length error message
+    int 21h
+    
+    ; Reset cursor back to input position
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row
+    mov dl, middle_col
+    int 10h
+    
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+show_max_length_error endp
+
+; Subroutine to clear error message area
+clear_error_message proc
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    ; Set cursor to error message row
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, error_msg_row         ; Row for error message
+    mov dl, 00h                   ; Start from column 0
+    int 10h
+    
+    ; Clear entire row
+    mov cx, 80                    ; 80 columns
+    mov ah, 0Eh                   ; Teletype output
+    mov al, ' '                   ; Space character
+    mov bh, 00h                   ; Page 0
+    
+clear_error_loop:
+    int 10h                       ; Output space
+    loop clear_error_loop
+    
+    ; Reset cursor back to input position
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, input_start_row
+    mov dl, middle_col
+    int 10h
+    
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+clear_error_message endp
 
 ; Subroutine to redraw input area with centered text
 redraw_input_area proc
@@ -1072,6 +1199,7 @@ name_terminate:
     pop ax
     ret
 addName endp
+
 
 
 
@@ -3192,36 +3320,36 @@ deleteSelect proc
 deleteSelect endp
 
 drawBoundary proc
-	mov color, 07h                        ;sets the color to light gray 
-    
-	;---top---
-    mov startx, 22                        ;sets the starting x-loc to 22 
-    mov endx, 300                         ;sets the ending x-loc of the line to 300 
-    mov starty, 22                        ;sets the starting y-loc to 22
-    mov endy, 23                          ;sets the ending y-loc of the line to 23 (height of line=1px)
+    mov color, 07h             ; Sets the color to light gray
+
+    ;---top---
+    mov startx, 22
+    mov endx, 300
+    mov starty, 22
+    mov endy, 23               ; Draws y=22 from x=22 to x=299
     call draw
 
-	;---right---
-    mov startx, 299                     
-    mov endx, 300
+    ;---right---
+    mov startx, 299
+    mov endx, 300              ; Draws x=299 from y=22 to y=179
     mov starty, 22
     mov endy, 180
     call draw
-    
-	;---left--- 
-    mov startx,22                       
-    mov endx,23
-    mov starty,22
-    mov endy,180
+
+    ;---left---
+    mov startx, 22
+    mov endx, 23               ; Draws x=22 from y=22 to y=179
+    mov starty, 22
+    mov endy, 180
     call draw
- 
-	;---bottom---
-    mov startx, 22                      
+
+    ;---bottom---
+    mov startx, 22
     mov endx, 300
-    mov starty,179
-    mov endy,180
-    call draw 
-   
+    mov starty, 179            ; Draws y=179 from x=22 to x=299
+    mov endy, 180
+    call draw
+
     ret
 drawBoundary endp
 
