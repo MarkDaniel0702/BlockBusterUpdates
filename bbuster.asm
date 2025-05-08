@@ -10,7 +10,7 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	OpeningFileHandle dw ?                                    
 	FileReadBuffer db 320 dup (?)
 
-	congratulations_text db 'Congratulations, ', '$'                          
+	congratulations_text db 'Congrats, ', '$'                          
 	score_text db 'Time Consumed: ', '$'                          
 	timeScore dw 0                                            ;score for timed mode 
 	scoreCount dw 0                                           ;bricks destroyed ctr 
@@ -3082,7 +3082,7 @@ message proc
     
     mov ah, 02h
 	mov dh, 0Eh 
-    mov dl, 1Ah
+    mov dl, 12h
     int 10h
     
     lea dx, playername
