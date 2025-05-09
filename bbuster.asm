@@ -56,6 +56,15 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	yes_text db 'YES!', '$'
     no_text db 'NO:(','$'
 	
+	isPaused    db 0                        ; Flag to track if game is paused (0=not paused, 1=paused)
+	pausedMsg   db "GAME PAUSED$"           ; Pause message
+	resumeMsg   db "Resume [R]$"             ; Resume option text - changed to R
+	mainMenuMsg db "Main Menu [M]$"          ; Main menu option text - changed to M
+	pauseBoxX   dw 90                       ; X position of pause box (moved left for bigger box)
+	pauseBoxY   dw 70                       ; Y position of pause box
+	pauseBoxW   dw 140                      ; Width of pause box (increased)
+	pauseBoxH   dw 80                       ; Height of pause box (increased)  
+	
 	level1_text db 'LEVEL 1', '$'
 	level2_text db 'LEVEL 2', '$'
 	level3_text db 'LEVEL 3', '$'
@@ -2711,16 +2720,20 @@ stopTime proc
 		call GameOverPage
 stopTime endp
 
-
 ; ----------------------------------------
 ;                Game Loop
 ; ----------------------------------------
 repeat:
-gameLoop:   
-	inc timeCtr                           ;increments time counter
 	call checkKeyboard                    ;checks keyboard inputs (left and right)
 	cmp begin, 1                          ;check if game is set to start
 	jne repeat                            ;restarts game loop if begin=0
+
+gameLoop:
+	inc timeCtr                           ;increments time counter
+	call checkKeyboard                    ;checks keyboard inputs (left and right)
+   
+	cmp isPaused, 1                       ;check if game is paused
+	je gameLoop                           ;if paused, loop back without updating game state
    
 	cmp gamemode, 0                       ;checks if level mode is chosen 
 	je none1                              ;if yes, then skip timer 
@@ -2762,10 +2775,13 @@ checkKeyboard proc
     je leftKey
 	cmp ax, 011Bh                         ;checks if the escape key is pressed 
 	je exitGame
+    cmp al, 'p'                           ;check if p key is pressed (case sensitive)
+    je pauseGame
+    cmp al, 'P'                           ;check if P key is pressed (upper case)
+    je pauseGame
     
     noInput:
 		ret  
-
     rightKey:     
 		mov bx, boundaryEnd               ;moves the value of boundaryEnd to the bx register 
 		cmp strikerX, bx	              ;checks if the striker reaches the wall  
@@ -2792,6 +2808,13 @@ checkKeyboard proc
 		call StartPage                    ;goes back to the main menu
 		ret
     
+    pauseGame:
+        cmp isPaused, 1                   ;check if already paused
+        je noInput                        ;if already paused, do nothing
+        mov isPaused, 1                   ;set pause flag
+        call showPauseMenu                ;display pause menu
+        ret
+        
 	;---moves ball to the right---
 	moveBallRight:
 		redrawBall 0
@@ -2806,6 +2829,157 @@ checkKeyboard proc
 		redrawBall 15
 		jmp noInput
 checkKeyboard endp
+
+; ----------------------------------------
+;             Pause Menu Functions
+; ----------------------------------------
+showPauseMenu proc
+    ; Save current screen state if needed
+    
+    ; Draw pause menu background (centered gray box)
+    mov ah, 0Ch                         ; function to draw pixel
+    mov al, 8                           ; dark gray color
+    
+    ; Use the saved pause box coordinates
+    mov cx, pauseBoxX                   ; X start position
+    mov dx, pauseBoxY                   ; Y start position
+    
+    drawPauseBox:
+        ; Draw horizontal line
+        mov bx, cx
+        add bx, pauseBoxW
+        drawHLine:
+            int 10h                     ; draw pixel
+            inc cx
+            cmp cx, bx
+            jl drawHLine
+        
+        ; Move to next line
+        sub cx, pauseBoxW               ; reset CX to left edge
+        inc dx                          ; move down one pixel
+        
+        ; Check if we've drawn the full height
+        mov bx, pauseBoxY
+        add bx, pauseBoxH
+        cmp dx, bx
+        jl drawPauseBox
+    
+    ; Draw "GAME PAUSED" text - centered
+    mov ah, 02h                         ; set cursor position
+    mov bh, 0                           ; page number
+    mov dh, 10                          ; row (vertical positioning)
+    mov dl, 15                          ; column (horizontal positioning)
+    int 10h
+    
+    mov ah, 09h                         ; display string function
+    lea dx, pausedMsg                   ; load address of message
+    int 21h
+    
+    ; Draw "Resume" option
+    mov ah, 02h
+    mov bh, 0
+    mov dh, 13                          ; row
+    mov dl, 15                          ; column
+    int 10h
+    
+    mov ah, 09h
+    lea dx, resumeMsg                   ; "R. Resume"
+    int 21h
+    
+    ; Draw "Main Menu" option
+    mov ah, 02h
+    mov bh, 0
+    mov dh, 16                          ; row
+    mov dl, 14                         ; column
+    int 10h
+    
+    mov ah, 09h
+    lea dx, mainMenuMsg                 ; "M. Main Menu"
+    int 21h
+    
+    ; Wait for key input
+    waitForPauseInput:
+        mov ah, 00h
+        int 16h
+        
+        cmp al, 'r'                     ; Check if 'r' is pressed (Resume)
+        je resumeGame
+        cmp al, 'R'                     ; Also check for uppercase R
+        je resumeGame
+        
+        cmp al, 'm'                     ; Check if 'm' is pressed (Main Menu)
+        je goToMainMenu
+        cmp al, 'M'                     ; Also check for uppercase M
+        je goToMainMenu
+        
+        jmp waitForPauseInput           ; If neither, keep waiting
+    
+    resumeGame:
+        mov isPaused, 0                 ; clear pause flag
+        call clearPauseMenu             ; clear the pause menu
+        ret
+        
+    goToMainMenu:
+        mov isPaused, 0                 ; clear pause flag
+        call StartPage                  ; go to main menu
+        ret
+showPauseMenu endp
+
+clearPauseMenu proc
+    ; Redraw the area where the pause menu was
+    ; Use background color to erase the pause menu
+    mov ah, 0Ch                         ; function to draw pixel
+    mov al, 0                           ; black color (background)
+    
+    ; Use the saved pause box coordinates
+    mov cx, pauseBoxX                   ; X start position
+    mov dx, pauseBoxY                   ; Y start position
+    
+    clearPauseBoxLoop:
+        mov bx, cx
+        add bx, pauseBoxW
+        clearHLine:
+            int 10h                     ; draw pixel (erase)
+            inc cx
+            cmp cx, bx
+            jl clearHLine
+        
+        ; Move to next line
+        mov cx, pauseBoxX               ; reset CX to left edge
+        inc dx                          ; move down one pixel
+        
+        ; Check if we've cleared the full height
+        mov bx, pauseBoxY
+        add bx, pauseBoxH
+        cmp dx, bx
+        jl clearPauseBoxLoop
+    
+    ; Redraw game elements that were covered by the pause menu
+    call BuildB                         ; rebuild all bricks
+    redrawStriker 13                    ; redraw striker
+    redrawBall 15                       ; redraw ball
+    
+    ; Additional game element redraws
+    cmp gamemode, 0                     ; check game mode
+    je levelModeRedraw
+    
+    ; Time mode redraw
+    call printTime                      ; redraw timer
+    jmp finishRedraw
+    
+    levelModeRedraw:
+    call drawLives                      ; redraw lives
+    
+    finishRedraw:
+    ret
+clearPauseMenu endp
+
+
+
+
+
+
+
 
 
 ; ----------------------------------------
@@ -3521,4 +3695,4 @@ beep proc
 
 	ret
 beep endp
-endp main
+end main
