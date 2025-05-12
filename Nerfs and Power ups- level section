@@ -12,6 +12,22 @@ nerf3_x         dw 0
 nerf3_y         dw 0
 nerf3_active    db 0   ; Life Deduction
 
+; Power-up data
+power1_x        dw 0
+power1_y        dw 0
+power1_active   db 0   ; Slow motion
+
+power2_x        dw 0
+power2_y        dw 0
+power2_active   db 0   ; Bigger ball
+
+power3_x        dw 0
+power3_y        dw 0
+power3_active   db 0   ; Score multiplier
+
+score_multiplier db 1  ; 1 = normal, 2 = double
+ball_size        db 1  ; 1 = normal, 2 = bigger
+
 
 ; ========== updateNerfs Procedure (Add to .code) ==========
 
@@ -86,6 +102,68 @@ skip_nerf2:
 
 skip_nerf3:
 
+    ; ------------ POWER-UP 1: SLOW MOTION --------------
+    cmp power1_active, 1
+    jne skip_power1
+    inc power1_y
+
+    mov ax, power1_y
+    cmp ax, strikerY
+    jne skip_power1
+
+    mov ax, power1_x
+    sub ax, strikerX
+    cmp ax, wid
+    jae skip_power1
+
+    ; Collision: slow motion
+    cmp innerDelay, 3
+    jae skip_power1
+    inc innerDelay
+    mov power1_active, 0
+
+skip_power1:
+
+    ; ------------ POWER-UP 2: BIGGER BALL --------------
+    cmp power2_active, 1
+    jne skip_power2
+    inc power2_y
+
+    mov ax, power2_y
+    cmp ax, strikerY
+    jne skip_power2
+
+    mov ax, power2_x
+    sub ax, strikerX
+    cmp ax, wid
+    jae skip_power2
+
+    ; Collision: bigger ball
+    mov ball_size, 2
+    mov power2_active, 0
+
+skip_power2:
+
+    ; ------------ POWER-UP 3: SCORE MULTIPLIER --------------
+    cmp power3_active, 1
+    jne skip_power3
+    inc power3_y
+
+    mov ax, power3_y
+    cmp ax, strikerY
+    jne skip_power3
+
+    mov ax, power3_x
+    sub ax, strikerX
+    cmp ax, wid
+    jae skip_power3
+
+    ; Collision: score multiplier
+    mov score_multiplier, 2
+    mov power3_active, 0
+
+skip_power3:
+
     pop dx
     pop cx
     pop bx
@@ -107,6 +185,13 @@ level3Game:
     mov ax, brick5y
     mov nerf1_y, ax
     mov nerf1_active, 1
+
+    ; Spawn slow motion power-up
+    mov ax, brick6x
+    mov power1_x, ax
+    mov ax, brick6y
+    mov power1_y, ax
+    mov power1_active, 1
     jmp next
 
 level4Game:
@@ -126,6 +211,13 @@ level4Game:
     mov ax, brick7y
     mov nerf2_y, ax
     mov nerf2_active, 1
+
+    ; Spawn bigger ball power-up
+    mov ax, brick8x
+    mov power2_x, ax
+    mov ax, brick8y
+    mov power2_y, ax
+    mov power2_active, 1
     jmp next
 
 level5Game:
@@ -151,6 +243,13 @@ level5Game:
     mov ax, brick8y
     mov nerf3_y, ax
     mov nerf3_active, 1
+
+    ; Spawn score multiplier power-up
+    mov ax, brick4x
+    mov power3_x, ax
+    mov ax, brick4y
+    mov power3_y, ax
+    mov power3_active, 1
     jmp next
 
 
