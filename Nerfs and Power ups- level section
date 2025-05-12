@@ -179,19 +179,7 @@ level3Game:
     mov innerDelay, 1
     mov fastball, 1
 
-    ; Spawn only speed nerf
-    mov ax, brick5x
-    mov nerf1_x, ax
-    mov ax, brick5y
-    mov nerf1_y, ax
-    mov nerf1_active, 1
-
-    ; Spawn slow motion power-up
-    mov ax, brick6x
-    mov power1_x, ax
-    mov ax, brick6y
-    mov power1_y, ax
-    mov power1_active, 1
+    ; Nerf and power-ups initialized dynamically via game loop every 20s
     jmp next
 
 level4Game:
@@ -199,25 +187,7 @@ level4Game:
     mov innerDelay, 1
     mov fastball, 1
 
-    ; Speed + paddle nerfs
-    mov ax, brick3x
-    mov nerf1_x, ax
-    mov ax, brick3y
-    mov nerf1_y, ax
-    mov nerf1_active, 1
-
-    mov ax, brick7x
-    mov nerf2_x, ax
-    mov ax, brick7y
-    mov nerf2_y, ax
-    mov nerf2_active, 1
-
-    ; Spawn bigger ball power-up
-    mov ax, brick8x
-    mov power2_x, ax
-    mov ax, brick8y
-    mov power2_y, ax
-    mov power2_active, 1
+    ; Nerf and power-ups initialized dynamically via game loop every 20s
     jmp next
 
 level5Game:
@@ -225,31 +195,7 @@ level5Game:
     mov innerDelay, 2
     mov fastball, 2
 
-    ; All 3 nerfs active
-    mov ax, brick2x
-    mov nerf1_x, ax
-    mov ax, brick2y
-    mov nerf1_y, ax
-    mov nerf1_active, 1
-
-    mov ax, brick5x
-    mov nerf2_x, ax
-    mov ax, brick5y
-    mov nerf2_y, ax
-    mov nerf2_active, 1
-
-    mov ax, brick8x
-    mov nerf3_x, ax
-    mov ax, brick8y
-    mov nerf3_y, ax
-    mov nerf3_active, 1
-
-    ; Spawn score multiplier power-up
-    mov ax, brick4x
-    mov power3_x, ax
-    mov ax, brick4y
-    mov power3_y, ax
-    mov power3_active, 1
+    ; Nerf and power-ups initialized dynamically via game loop every 20s
     jmp next
 
 
@@ -257,3 +203,47 @@ level5Game:
 
 ; (somewhere inside your main game loop logic)
 call updateNerfs
+
+    ; Every ~20 seconds (example logic)
+    inc timeCtr
+    cmp timeCtr, 2000     ; Adjust this value based on timer granularity
+    jne skipPowerTrigger
+
+    ; Reset time counter
+    mov timeCtr, 0
+
+    ; Randomize power-up (very basic pseudo-random logic)
+    mov al, scoreCount
+    and al, 03h
+    cmp al, 0
+    je spawnPower1
+    cmp al, 1
+    je spawnPower2
+    cmp al, 2
+    je spawnPower3
+    jmp skipPowerTrigger
+
+spawnPower1:
+    mov ax, brick1x
+    mov power1_x, ax
+    mov ax, brick1y
+    mov power1_y, ax
+    mov power1_active, 1
+    jmp skipPowerTrigger
+
+spawnPower2:
+    mov ax, brick2x
+    mov power2_x, ax
+    mov ax, brick2y
+    mov power2_y, ax
+    mov power2_active, 1
+    jmp skipPowerTrigger
+
+spawnPower3:
+    mov ax, brick3x
+    mov power3_x, ax
+    mov ax, brick3y
+    mov power3_y, ax
+    mov power3_active, 1
+
+skipPowerTrigger:
