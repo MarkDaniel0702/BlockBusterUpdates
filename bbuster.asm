@@ -1259,8 +1259,8 @@ printName proc
     lea dx, playername
     int 21h
     
-    ret 
-printName endp 
+    ret  ; <-- Removed the invalid character after 'ret'
+printName endp
 
 
 ; ----------------------------------------
