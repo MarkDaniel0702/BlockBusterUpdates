@@ -6,7 +6,6 @@ entry:
 EXTERNDELAY = 3                                               ;delay for the movement and speed of the ball 
 
 .data
-	OpeningFileName	db	'Assets/Opening.bmp',0                ;title page bitmap 
 	OpeningFileHandle dw ?                                    
 	FileReadBuffer db 320 dup (?)
 
