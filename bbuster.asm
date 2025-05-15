@@ -9,6 +9,8 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	OpeningFileName	db	'Assets/Opening.bmp',0                ;title page bitmap 
 	OpeningFileHandle dw ?                                    
 	FileReadBuffer db 320 dup (?)
+	PixelsPerChar equ 8  
+
 
 	congratulations_text db 'Congrats, ', '$'                          
 	score_text db 'Time Consumed: ', '$'                          
@@ -18,24 +20,31 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	gamemode db 0                                             ;game mode determinator (0 -> level, 1 -> timed)                           
 	soundOn db 1                                              ;1 -> soundOn, 0 -> soundOff
 
-	tens db '5'         ; MUST BE db and an ASCII character like '5' (not 53)
-    ones db '9'         ; MUST BE db and an ASCII character like '9' (not 57)
+	tens db '5'         
+    ones db '9'         
     timeCtr db 0
     timer_color db 0Fh  ;
 	
-	entername_text db 'ENTER YOUR NAME:', '$' ; Updated prompt
-    playername db 21 dup (?)           ; Player name buffer, Max 20 chars + '$' terminator
-    max_name_len equ 20                ; Maximum length for player name
-    input_start_row db 0Fh             ; Row for name input
-    input_start_col db 0Ah             ; Starting column of the input *area*
-	max_chars_msg db 'Max 20 characters$' ; Removed spaces here
-	; You'll need to add this variable to your data segment
-	middle_col db 0                   ; To store the middle column position	
-	error_msg_row db 14h              ; Row for error message (adjust as needed)
-    name_required_msg db 'Please enter your name!$'
-	max_length_msg db 'Max Character limit reached!$'        ; Max length error
-	
-    
+	entername_text      db 'ENTER YOUR NAME:', '$'
+    playername          db 21 dup (?)           ; Buffer for player's name input
+    max_name_len        equ 20                  ; Maximum characters for player name
+    input_start_row     db 0Fh                  ; Row for name input field
+    input_start_col     db 0Ah                  ; Column for name input field
+    max_chars_msg       db 'Max 20 characters$'
+    middle_col          db 0                    ; Stores the calculated middle column for name input
+    error_msg_row       db 14h                  ; Row where error messages are displayed
+    name_required_msg   db 'Please enter your name!$'
+    max_length_msg      db 'Max Character limit reached!$'
+
+    PauseTitleRow       db 9                    ; Character row for "GAME PAUSED" text
+    PauseTitleCol       db 13                   ; Character column for "GAME PAUSED" text
+
+    PauseResumeRow      db 11                   ; Character row for "RESUME" text
+    PauseResumeCol      db 14                   ; Character column for "RESUME" text
+
+    PauseMainRow        db 13                   ; Character row for "MAIN MENU" text
+    PauseMainCol        db 13                   ; Character column for "MAIN MENU" text
+
 	
 	controlB_text db '[B]Back', '$'                           
 	control1_text db 'MOVE PADDLE', '$'
@@ -58,13 +67,15 @@ EXTERNDELAY = 3                                               ;delay for the mov
     no_text db 'NO:(','$'
 	
 	isPaused    db 0                        ; Flag to track if game is paused (0=not paused, 1=paused)
-	pausedMsg   db "GAME PAUSED$"           ; Pause message
-	resumeMsg   db "Resume [R]$"             ; Resume option text - changed to R
-	mainMenuMsg db "Main Menu [M]$"          ; Main menu option text - changed to M
-	pauseBoxX   dw 90                       ; X position of pause box (moved left for bigger box)
-	pauseBoxY   dw 70                       ; Y position of pause box
-	pauseBoxW   dw 140                      ; Width of pause box (increased)
-	pauseBoxH   dw 80                       ; Height of pause box (increased)  
+	pausedMsg   db "GAME PAUSED!$"           ; Pause message
+	pauseResumeText   db "RESUME", "$"
+    pauseMainMenuText db "MAIN MENU", "$"
+	pauseBoxX   dw (10*8)  
+    pauseBoxY   dw (8*8)  
+    pauseBoxW   dw (20*8) 
+    pauseBoxH   dw (8*8)   
+    PauseBoxColor db 08h 
+	pauseOpt    db 1        
 	
 	level1_text db 'LEVEL 1', '$'
 	level2_text db 'LEVEL 2', '$'
@@ -72,9 +83,9 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	level4_text db 'LEVEL 4', '$'
 	level5_text db 'LEVEL 5', '$'
 
-	xloc dw 147                                               ;x-location of underline                       
-	yloc dw 129                                               ;y-location of underline
-	wid dw 25                                                 ;underline width 
+	xloc dw ?             ; Para sa X ng underline (ginagamit ng drawSelect mo)
+    yloc dw ?             ; Para sa Y ng underline
+    wid  dw ?             ; Para sa Width ng underline
 	
 	opt db 1                                                  ;checks which menu option is chosen in the main menu 
 	optCompleted db 1                                         ;checks which menu option is chosen in the Game Completed Page  
@@ -362,14 +373,12 @@ EXTERNDELAY = 3                                               ;delay for the mov
 
 .code
 drawTitle macro X, Y, W, H, C
-	;---moves the arguments to the specified variables that will be used in AddRec---
-	mov xlocRec, X
-	mov ylocRec, Y
-	mov widRec, W
-	mov heightRec, H
-	mov color, C
-	
-	call AddRec
+    mov xlocRec, X
+    mov ylocRec, Y
+    mov widRec, W
+    mov heightRec, H
+    mov color, C
+    call AddRec
 endm
 
 redrawBall macro newColor
@@ -1399,6 +1408,7 @@ menu proc
 	mov scoreCount, 0
 	mov timeScore, 0
 	mov lives, 3
+	mov byte ptr [isPaused], 0
 
 	;---prints the menus---
 	mov ah, 02h
@@ -2807,7 +2817,9 @@ printTime proc
     mov al, [ones]  ; AL = character to print (from 'ones' variable, which is a db)
     int 10h         ; Print the character in AL using the color attribute in BL
 
-
+    ; After teletype output, the cursor has moved forward.
+    ; Move it back two places so that the next time printTime is called,
+    ; it overwrites the same spot, making the timer appear to update in place.
     mov ah, 02h     ; BIOS function: Set Cursor Position
     mov bh, 0       ; Page number 0
     ; dh (row) is still correct from the first cursor setting in this procedure
@@ -2988,148 +3000,292 @@ checkKeyboard endp
 ;             Pause Menu Functions
 ; ----------------------------------------
 showPauseMenu proc
-    ; Save current screen state if needed
-    
-    ; Draw pause menu background (centered gray box)
-    mov ah, 0Ch                         ; function to draw pixel
-    mov al, 8                           ; dark gray color
-    
-    ; Use the saved pause box coordinates
-    mov cx, pauseBoxX                   ; X start position
-    mov dx, pauseBoxY                   ; Y start position
-    
-    drawPauseBox:
-        ; Draw horizontal line
-        mov bx, cx
-        add bx, pauseBoxW
-        drawHLine:
-            int 10h                     ; draw pixel
-            inc cx
-            cmp cx, bx
-            jl drawHLine
-        
-        ; Move to next line
-        sub cx, pauseBoxW               ; reset CX to left edge
-        inc dx                          ; move down one pixel
-        
-        ; Check if we've drawn the full height
-        mov bx, pauseBoxY
-        add bx, pauseBoxH
-        cmp dx, bx
-        jl drawPauseBox
-    
-    ; Draw "GAME PAUSED" text - centered
-    mov ah, 02h                         ; set cursor position
-    mov bh, 0                           ; page number
-    mov dh, 10                          ; row (vertical positioning)
-    mov dl, 15                          ; column (horizontal positioning)
-    int 10h
-    
-    mov ah, 09h                         ; display string function
-    lea dx, pausedMsg                   ; load address of message
-    int 21h
-    
-    ; Draw "Resume" option
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+
+    ; --- 1. Draw Pause Menu Background Box (Filled Rectangle) ---
+    mov di, [pauseBoxY]     ; Start Y in DI (current row to draw)
+    local endY_SMP:word     ; SMP for ShowMenuPause
+    mov ax, [pauseBoxY]
+    add ax, [pauseBoxH]
+    mov endY_SMP, ax        ; End Y
+
+FillPauseBoxLoop_SMP:
+    cmp di, endY_SMP        ; Have we drawn all rows?
+    jge DoneFillingBox_SMP  ; If current Y >= end Y, box is filled
+
+    mov ax, [pauseBoxX]     ; Get value of pauseBoxX
+    mov xlocRec, ax
+    mov ylocRec, di         ; Current Y row (DI is a word register)
+    mov ax, [pauseBoxW]     ; Get value of pauseBoxW
+    mov widRec, ax
+    mov heightRec, 1        ; Height of the line is 1 pixel
+    mov al, [PauseBoxColor] ; Get the box color
+    mov color, al           ; Assuming 'color' is the variable AddRec uses
+    call AddRec
+
+    inc di                  ; Move to the next row
+    jmp FillPauseBoxLoop_SMP
+DoneFillingBox_SMP:
+
+    ; --- 2. Display "GAME PAUSED" Title ---
     mov ah, 02h
     mov bh, 0
-    mov dh, 13                          ; row
-    mov dl, 15                          ; column
+    mov dh, [PauseTitleRow]
+    mov dl, [PauseTitleCol]
     int 10h
-    
     mov ah, 09h
-    lea dx, resumeMsg                   ; "R. Resume"
+    lea dx, pausedMsg
     int 21h
-    
-    ; Draw "Main Menu" option
+
+    ; --- 3. Display "RESUME" Option ---
     mov ah, 02h
     mov bh, 0
-    mov dh, 16                          ; row
-    mov dl, 14                         ; column
+    mov dh, [PauseResumeRow]
+    mov dl, [PauseResumeCol]
     int 10h
-    
     mov ah, 09h
-    lea dx, mainMenuMsg                 ; "M. Main Menu"
+    lea dx, pauseResumeText
     int 21h
-    
-    ; Wait for key input
-    waitForPauseInput:
-        mov ah, 00h
-        int 16h
-        
-        cmp al, 'r'                     ; Check if 'r' is pressed (Resume)
-        je resumeGame
-        cmp al, 'R'                     ; Also check for uppercase R
-        je resumeGame
-        
-        cmp al, 'm'                     ; Check if 'm' is pressed (Main Menu)
-        je goToMainMenu
-        cmp al, 'M'                     ; Also check for uppercase M
-        je goToMainMenu
-        
-        jmp waitForPauseInput           ; If neither, keep waiting
-    
-    resumeGame:
-        mov isPaused, 0                 ; clear pause flag
-        call clearPauseMenu             ; clear the pause menu
-        ret
-        
-    goToMainMenu:
-        mov isPaused, 0                 ; clear pause flag
-        call StartPage                  ; go to main menu
-        ret
+
+    ; --- 4. Display "MAIN MENU" Option ---
+    mov ah, 02h
+    mov bh, 0
+    mov dh, [PauseMainRow]
+    mov dl, [PauseMainCol]
+    int 10h
+    mov ah, 09h
+    lea dx, pauseMainMenuText
+    int 21h
+
+    ; --- 5. Initialize selection and Set Underline for "RESUME" ---
+    mov byte ptr [pauseOpt], 1  ; Default select "RESUME"
+
+    mov al, [PauseResumeCol]
+    mov bl, PixelsPerChar
+    mul bl
+    mov xloc, ax
+
+    mov al, [PauseResumeRow]
+    mov bl, PixelsPerChar
+    mul bl
+    add ax, PixelsPerChar
+    mov yloc, ax
+
+    mov ax, 6 ; Length of "RESUME"
+    mov bl, PixelsPerChar
+    mul bl
+    mov wid, ax
+    call drawSelect
+
+PauseMenuInputLoop_SMP:
+    mov ah, 00h
+    int 16h
+
+    cmp soundOn, 1
+    jne NoBeep_SMP
+    call beep
+NoBeep_SMP:
+
+    cmp ah, 48h             ; Up Arrow?
+    jne CheckDown_SMP
+    jmp PauseOptUp_SMP_Action
+CheckDown_SMP:
+    cmp ah, 50h             ; Down Arrow?
+    jne CheckEnter_SMP
+    jmp PauseOptDown_SMP_Action
+CheckEnter_SMP:
+    cmp ax, 1C0Dh           ; Enter key?
+    jne CheckP_SMP
+    jmp PauseOptSelected_SMP_Action
+CheckP_SMP:
+    cmp al, 'p'
+    jne CheckCapsP_SMP
+    jmp QuickResumeHandler_SMP_Action
+CheckCapsP_SMP:
+    cmp al, 'P'
+    jne LoopNoKey_SMP
+    jmp QuickResumeHandler_SMP_Action
+LoopNoKey_SMP:
+    jmp PauseMenuInputLoop_SMP
+
+PauseOptUp_SMP_Action:
+    cmp byte ptr [pauseOpt], 1
+    jne WasOnMain_SMP
+    ; Was on RESUME, loop to MAIN MENU
+    call deleteSelect
+    mov byte ptr [pauseOpt], 2
+    mov al, [PauseMainCol]
+    mov bl, PixelsPerChar
+    mul bl; mov xloc, ax
+    mov xloc, ax
+    mov al, [PauseMainRow]
+    mov bl, PixelsPerChar
+    mul bl; add ax, PixelsPerChar; mov yloc, ax
+    add ax, PixelsPerChar
+    mov yloc, ax
+    mov ax, 9; "MAIN MENU" length
+    mov bl, PixelsPerChar
+    mul bl; mov wid, ax
+    mov wid, ax
+    jmp DrawNewSel_SMP
+
+WasOnMain_SMP:
+    ; Was on MAIN MENU, move to RESUME
+    call deleteSelect
+    dec byte ptr [pauseOpt]
+    mov al, [PauseResumeCol]
+    mov bl, PixelsPerChar
+    mul bl; mov xloc, ax
+    mov xloc, ax
+    mov al, [PauseResumeRow]
+    mov bl, PixelsPerChar
+    mul bl; add ax, PixelsPerChar; mov yloc, ax
+    add ax, PixelsPerChar
+    mov yloc, ax
+    mov ax, 6; "RESUME" length
+    mov bl, PixelsPerChar
+    mul bl; mov wid, ax
+    mov wid, ax
+    ; Fall through to DrawNewSel_SMP
+
+DrawNewSel_SMP:
+    call drawSelect
+    jmp PauseMenuInputLoop_SMP
+
+PauseOptDown_SMP_Action:
+    cmp byte ptr [pauseOpt], 2
+    jne WasOnResume_SMP
+    ; Was on MAIN MENU, loop to RESUME
+    call deleteSelect
+    mov byte ptr [pauseOpt], 1
+    mov al, [PauseResumeCol]
+    mov bl, PixelsPerChar
+    mul bl; mov xloc, ax
+    mov xloc, ax
+    mov al, [PauseResumeRow]
+    mov bl, PixelsPerChar
+    mul bl; add ax, PixelsPerChar; mov yloc, ax
+    add ax, PixelsPerChar
+    mov yloc, ax
+    mov ax, 6; "RESUME" length
+    mov bl, PixelsPerChar
+    mul bl; mov wid, ax
+    mov wid, ax
+    jmp DrawNewSel_SMP
+
+WasOnResume_SMP:
+    ; Was on RESUME, move to MAIN MENU
+    call deleteSelect
+    inc byte ptr [pauseOpt]
+    mov al, [PauseMainCol]
+    mov bl, PixelsPerChar
+    mul bl; mov xloc, ax
+    mov xloc, ax
+    mov al, [PauseMainRow]
+    mov bl, PixelsPerChar
+    mul bl; add ax, PixelsPerChar; mov yloc, ax
+    add ax, PixelsPerChar
+    mov yloc, ax
+    mov ax, 9; "MAIN MENU" length
+    mov bl, PixelsPerChar
+    mul bl; mov wid, ax
+    mov wid, ax
+    jmp DrawNewSel_SMP
+
+QuickResumeHandler_SMP_Action:
+    mov byte ptr [pauseOpt], 1
+    ; Fall through
+
+PauseOptSelected_SMP_Action:
+    call deleteSelect       ; Delete underline BAGO mag-clear/mag-action
+
+    cmp byte ptr [pauseOpt], 1
+    jne GoToMainMenu_SMP_Path
+
+    ; RESUME Path
+    call clearPauseMenu     ; Burahin ang pause menu graphics at i-redraw ang game
+    mov isPaused, 0
+    jmp ExitShowPauseMenu_SMP   ; Direktang exit para bumalik sa game loop
+
+GoToMainMenu_SMP_Path:
+    ; MAIN MENU Path
+    ; Hindi na kailangan i-call ang clearPauseMenu dito kasi ang StartPage magse-setVideoMode
+    mov isPaused, 0
+    mov begin, 0            ; Mahalaga para ang gameLoop ay huminto at makabalik sa StartPage flow
+    call StartPage
+    ; After StartPage returns (e.g. user exits game), then we exit showPauseMenu
+
+ExitShowPauseMenu_SMP:
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
 showPauseMenu endp
 
 clearPauseMenu proc
-    ; Redraw the area where the pause menu was
-    ; Use background color to erase the pause menu
-    mov ah, 0Ch                         ; function to draw pixel
-    mov al, 0                           ; black color (background)
-    
-    ; Use the saved pause box coordinates
-    mov cx, pauseBoxX                   ; X start position
-    mov dx, pauseBoxY                   ; Y start position
-    
-    clearPauseBoxLoop:
-        mov bx, cx
-        add bx, pauseBoxW
-        clearHLine:
-            int 10h                     ; draw pixel (erase)
-            inc cx
-            cmp cx, bx
-            jl clearHLine
-        
-        ; Move to next line
-        mov cx, pauseBoxX               ; reset CX to left edge
-        inc dx                          ; move down one pixel
-        
-        ; Check if we've cleared the full height
-        mov bx, pauseBoxY
-        add bx, pauseBoxH
-        cmp dx, bx
-        jl clearPauseBoxLoop
-    
-    ; Redraw game elements that were covered by the pause menu
-    call BuildB                         ; rebuild all bricks
-    redrawStriker 13                    ; redraw striker
-    redrawBall 15                       ; redraw ball
-    
-    ; Additional game element redraws
-    cmp gamemode, 0                     ; check game mode
-    je levelModeRedraw
-    
-    ; Time mode redraw
-    call printTime                      ; redraw timer
-    jmp finishRedraw
-    
-    levelModeRedraw:
-    call drawLives                      ; redraw lives
-    
-    finishRedraw:
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+
+    ; --- 1. Erase the Pause Menu Box and Text Area by drawing a black rectangle ---
+    ;    Gagamitin natin yung pauseBoxX, Y, W, H.
+    mov di, [pauseBoxY]     ; Start Y
+    local endY_CPM:word     ; CPM for ClearPauseMenu
+    mov ax, [pauseBoxY]
+    add ax, [pauseBoxH]
+    mov endY_CPM, ax        ; End Y
+
+ClearFillLoop_CPM:
+    cmp di, endY_CPM
+    jge DoneClearingBox_CPM
+
+    mov ax, [pauseBoxX]
+    mov xlocRec, ax
+    mov ylocRec, di         ; Current Y row
+    mov ax, [pauseBoxW]
+    mov widRec, ax
+    mov heightRec, 1
+    mov color, 0            ; COLOR BLACK to erase
+    call AddRec
+
+    inc di
+    jmp ClearFillLoop_CPM
+DoneClearingBox_CPM:
+
+    ; --- 2. CRITICAL: Redraw all active game elements ---
+    call BuildB             ; Redraw all bricks (kung nagbabago sila, or just the visible ones)
+    redrawStriker 13
+    redrawBall 15           ; Redraw ball at its current position
+    call printName          ; Kung naka-display ang pangalan habang naglalaro
+
+    cmp gamemode, 0         ; Check game mode
+    je RedrawLives_CPM      ; If level mode, redraw lives
+    call printTime          ; If timed mode, redraw timer (uses timer_color)
+    jmp EndRedraw_CPM
+
+RedrawLives_CPM:
+    call drawLives
+EndRedraw_CPM:
+
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
     ret
 clearPauseMenu endp
-
-
-
 
 
 
