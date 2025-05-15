@@ -18,9 +18,10 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	gamemode db 0                                             ;game mode determinator (0 -> level, 1 -> timed)                           
 	soundOn db 1                                              ;1 -> soundOn, 0 -> soundOff
 
-	tens dw 53                                                ;tenths position in timer (5)
-	ones dw 57                                                ;ones position in timer (9) 
-	timeCtr db 0                                              ;checks if a second has passed (timeCtr == 100 == 1 second)  
+	tens db '5'         ; MUST BE db and an ASCII character like '5' (not 53)
+    ones db '9'         ; MUST BE db and an ASCII character like '9' (not 57)
+    timeCtr db 0
+    timer_color db 0Fh  ;
 	
 	entername_text db 'ENTER YOUR NAME:', '$' ; Updated prompt
     playername db 21 dup (?)           ; Player name buffer, Max 20 chars + '$' terminator
@@ -743,9 +744,11 @@ drawControl endp
 ; ----------------------------------------
 ;                  Name
 ; ----------------------------------------
+
+
 drawName proc
-	drawTitle 80, 49, 4, 20, 0Dh          ;calls drawTitle macro to print each horizontal and vertical line of the letter E 
-	drawTitle 80, 49, 12, 4, 0Dh          ;78 -> x-loc of first pixel, 49 -> y-loc, 12 -> width of line, 4 -> heigh of line, 0Dh -> color
+	drawTitle 80, 49, 4, 20, 0Dh      	;calls drawTitle macro to print each horizontal and vertical line of the letter E 
+	drawTitle 80, 49, 12, 4, 0Dh        ;78 -> x-loc of first pixel, 49 -> y-loc, 12 -> width of line, 4 -> heigh of line, 0Dh -> color
 	drawTitle 80, 57, 10, 4, 0Dh
 	drawTitle 80, 65, 12, 4, 0Dh
 	
@@ -2031,59 +2034,83 @@ timedMenu proc
 timedMenu endp
 
 levelmode proc
+	push ax          ; Save registers
+	push dx
+	push cx
+	push bx
+
 	call setVideoMode
 	call drawBoundary
 	call drawBorder
-	mov begin, 1                          ;indicates that the game is set to begin 
-	mov lives, 3                          ;sets lives count to 3 
+	mov begin, 1     ; Indicates that the game is set to begin
+	mov lives, 3     ; Sets lives count to 3 (primarily for level mode)
 
-	;---checks which level is selected
-	cmp optLevel, 1                       
+	; Determine level settings based on optLevel
+	cmp optLevel, 1
+	je level1_settings_for_59s
 	cmp optLevel, 2
-	je level2Game
+	je level2_settings_for_59s
 	cmp optLevel, 3
-	je level3Game
+	je level3_settings_for_59s
 	cmp optLevel, 4
-	je level4Game
+	je level4_settings_for_59s
 	cmp optLevel, 5
-	je level5Game
+	je level5_settings_for_59s
+	; Default to level 1 if optLevel is out of expected 2-5 range or handle as error
+	jmp level1_settings_for_59s 
 
-	level1Game:
-		call levelOne                     ;sets the bricks layout 
-		mov innerDelay, 0                 ;sets the speed of the ball 
-		mov fastball, 0
-		jmp next                          ;jumps to next 
+level1_settings_for_59s:
+	call levelOne     ; Sets the bricks layout for level 1
+	mov innerDelay, 0 ; Sets the speed of the ball
+	mov fastball, 0
+	jmp common_game_initialization_for_59s
 	
-	level2Game:
-		call levelTwo
-		mov innerDelay, 0
-		mov fastball, 0
-		jmp next
+level2_settings_for_59s:
+	call levelTwo
+	mov innerDelay, 0
+	mov fastball, 0
+	jmp common_game_initialization_for_59s
 	
-	level3Game:
-		call levelThree
-		mov innerDelay, 1
-		mov fastball, 1
-		jmp next
+level3_settings_for_59s:
+	call levelThree
+	mov innerDelay, 1 ; Ball is faster
+	mov fastball, 1
+	jmp common_game_initialization_for_59s
 		
-	level4Game:
-		call levelFour
-		mov innerDelay, 1
-		mov fastball, 1
-		jmp next
+level4_settings_for_59s:
+	call levelFour
+	mov innerDelay, 1
+	mov fastball, 1
+	jmp common_game_initialization_for_59s
 		
-	level5Game:
-		call levelFive
-		mov innerDelay, 2
-		mov fastball, 2
-		jmp next
+level5_settings_for_59s:
+	call levelFive
+	mov innerDelay, 2 ; Ball is fastest
+	mov fastball, 2
+	jmp common_game_initialization_for_59s
 
-	next:
-		call BuildB                       ;builds the bricks on the screen 
-		call printName                    ;prints player's name 
-		redrawStriker 13                  ;draws striker 
-		redrawBall 15                     ;draws ball 
-		call gameLoop                     ;starts gameloop 
+common_game_initialization_for_59s: ; Renamed label for clarity
+	call BuildB         ; Builds the bricks on the screen
+	call printName      ; Prints player's name
+	redrawStriker 13    ; Draws striker
+	redrawBall 15       ; Draws ball
+
+	; --- THIS SECTION ENSURES IMMEDIATE "59" DISPLAY FOR TIMED MODE ---
+	cmp gamemode, 0      ; Check if level mode (gamemode == 0)
+	je about_to_start_gameloop_59s ; If level mode, skip initial timer print
+
+	; If timed mode (gamemode == 1), call printTime to display the initial "59"
+	call printTime       ; Assumes printTime correctly displays "59"
+	                     ; based on tens and ones variables.
+	; -------------------------------------------------------------------
+	
+about_to_start_gameloop_59s: ; Renamed label for clarity
+	call gameLoop       ; Starts the main game loop
+	
+	pop bx              ; Restore registers
+	pop cx
+	pop dx
+	pop ax
 	ret
 levelmode endp
 
@@ -2358,6 +2385,61 @@ RemoveBrick proc
     ret
 RemoveBrick endp
 
+;----------------------------------------------------
+; SubtractFiveSeconds - Deducts 5 seconds from timer
+;                       Updates 'tens' and 'ones' (both DB)
+;                       Handles underflow (sets time to 00)
+;----------------------------------------------------
+SubtractFiveSeconds proc
+    push ax
+    push bx
+    push cx
+    push dx
+
+    ; Convert current time (tens, ones) to total seconds
+    mov al, tens    ; AL = ASCII value from DB 'tens'
+    sub al, '0'     ; Convert ASCII tens digit to number
+    mov bl, 10
+    mul bl          ; AX = AL * BL (tens_value * 10)
+    mov cx, ax      ; CX = numerical value of tens part
+
+    mov al, ones    ; AL = ASCII value from DB 'ones'
+    sub al, '0'     ; Convert ASCII ones digit to number
+    cbw             ; Extend AL to AX (AH becomes 0 for the numeric value)
+    add cx, ax      ; CX = total seconds (e.g., tens_val*10 + ones_val)
+
+    ; Subtract 5 seconds
+    sub cx, 5       ; CX = total seconds - 5
+
+    ; Check if time is less than or equal to 0
+    cmp cx, 0
+    jle TimeIsUp_SetToZero_SF ; Jump if Less than or Equal
+
+    ; Time is > 0, convert back to tens and ones
+    mov ax, cx      ; AX now has remaining_seconds
+    mov dl, 10      ; Divisor
+    div dl          ; AL = quotient (new tens_value), AH = remainder (new ones_value)
+
+    mov bl, al      ; Store new tens_value in BL temporarily
+    add bl, '0'     ; Convert new tens_value to ASCII
+    mov tens, bl    ; Store 8-bit ASCII in DB 'tens'
+
+    mov bl, ah      ; Store new ones_value in BL temporarily
+    add bl, '0'     ; Convert new ones_value to ASCII
+    mov ones, bl    ; Store 8-bit ASCII in DB 'ones'
+    jmp EndSubtractFiveSeconds_SF
+
+TimeIsUp_SetToZero_SF:
+    mov tens, '0'   ; Store 8-bit ASCII '0' in DB 'tens'
+    mov ones, '0'   ; Store 8-bit ASCII '0' in DB 'ones'
+
+EndSubtractFiveSeconds_SF:
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+SubtractFiveSeconds endp
 
 ; ----------------------------------------
 ;                  Ball
@@ -2383,100 +2465,135 @@ drawball proc
 ret
 drawball endp
 
-Collisionwall proc     
-    mov bx, ballX                         ;moves the current x-location of the ball to bx  
-    mov cx, ballY                         ;moves the current y-location of the ball to cx 
-    
-    checkLeftRight:
-		cmp bx, 25                        ;checks if the ball hits the left wall/reaches the left boundary (25 -> x-loc of the left wall)
-		jl goRight                        ;if yes, jump to goRight 
-		cmp bx, 290                       ;check if the ball hits the right wall
-		jg goLeft
-		jmp checkUpDown                   ;if ball hits none of the left and right walls, check the up and bottom walls
-		
-    goRight:
-		mov ballLeft, 0                   ;sets ballLeft to 0, indicating that the ball will now move to the right
-		jmp checkUpDown
-		
-    goLeft:
-		mov ballLeft, 1                   ;indicates that the ball will now move to the left 
-	
-    checkUpDown:
-		cmp cx, 25                        ;checks if the ball hits the top wall
-		jl goDown
-		cmp cx, 175                       ;check if ball hits the bottom wall
-		jg goUp
-   
-	jmp noInput1                          
-	
-    goUp:                                            
-		mov ballUp, 1                     ;indicates that the ball will now move upwards  
-		jmp noInput1                      
-	
-    goDown: 
-		mov ballUp, 0                     ;indicates that the ball will now move downwards
-  
-	noInput1:
+Collisionwall proc
+    mov bx, ballX           ; bx = current ball x-coordinate
+    mov cx, ballY           ; cx = current ball y-coordinate
+
+checkLeftRight:
+    cmp bx, 25              ; Is ball beyond left wall (x < 25)?
+    jl goRight              ; If yes, make ball go right
+    cmp bx, 290             ; Is ball beyond right wall (x > 290)?
+    jg goLeft               ; If yes, make ball go left
+    jmp checkUpDown         ; Otherwise, check top/bottom walls
+
+goRight:
+    mov ballLeft, 0         ; Set ball direction to right
+    jmp checkUpDown
+
+goLeft:
+    mov ballLeft, 1         ; Set ball direction to left
+
+checkUpDown:
+    cmp cx, 25              ; Is ball beyond top wall (y < 25)?
+    jl goDown               ; If yes, make ball go down
+    cmp cx, 175             ; Is ball beyond bottom edge of play area (y > 175)?
+                            ; Note: This 175 is the play area bottom, not screen bottom.
+                            ; Striker collision handles actual screen bottom.
+    jg goUp                 ; If yes, make ball go up
+
+    jmp noWallCollision_CW  ; No wall collision detected in this check
+
+goUp:
+    mov ballUp, 1           ; Set ball direction to up
+    jmp noWallCollision_CW
+
+goDown:
+    mov ballUp, 0           ; Set ball direction to down
+
+noWallCollision_CW:
     ret
 Collisionwall endp
 
-CollisionStriker proc    
+CollisionStriker proc
     push ax
     push bx
     push cx
     push dx
-    
-    mov dx, ballY                         ;moves current y-location of ball to dx register 
-    cmp dx, 165                           ;checks if the ball misses the striker 
-    jl movement                           ;if not, continue moving the ball
-    cmp dx, 170                           ;checks if the ball hits the bottom wall
-    jg check1                            
-    
-    mov cx, strikerX                      ;moves the current x-loc of striker to cx register
-    mov ax, ballX                         ;moves the current x-loc of ball to ax register 
-    cmp ax, cx                            ;checks if the ball hits the striker 
-    jl movement                           ;if ball's x-loc is less than the striker's, continue moving the ball (back to loop) 
-    add cx, 40                            ;if greater than, add 40 (striker's width) to the striker's x-loc (cx)
-    cmp ax, cx                            ;check again if the ball hits the striker 
-    jg movement                           ;if ball's x-loc is greater than the striker's, continue moving the ball
-										  ;if ball's x-loc is less than the striker's end then the ball is within the vicinity of the striker
-    mov ballUp, 1                         ;indicates that the ball will now move upwards
-    jmp movement                          ;continue moving the ball
-    
-	movement:
-	pop dx
+
+    mov dx, ballY           ; dx = current ball y-coordinate
+    cmp dx, 165             ; Is ball above the paddle's top edge?
+    jnl ContinueCheck1_CS   ; If ball_y >= 165, continue checking
+    jmp ExitCS_NoAction     ; If ball_y < 165, it's too high, no action here
+
+ContinueCheck1_CS:
+    cmp dx, 170             ; Is ball below the paddle's main body?
+    jg FellOffBottom_CS     ; If ball_y > 170, it fell off screen bottom
+
+    ; Ball Y is within paddle's Y-range [165, 170]. Check X-collision.
+    mov cx, strikerX        ; cx = striker's x-coordinate
+    mov ax, ballX           ; ax = ball's x-coordinate
+    cmp ax, cx              ; Is ball to the left of striker?
+    jnl ContinueCheck2_CS   ; If ball_x >= striker_x, continue checking
+    jmp ExitCS_NoAction     ; Ball missed to the left
+
+ContinueCheck2_CS:
+    add cx, 40              ; cx = striker's right edge (strikerX + width)
+    cmp ax, cx              ; Is ball to the right of striker's right edge?
+    jng HitThePaddle_CS     ; If ball_x <= striker_right_edge, it's a hit or on the edge
+    jmp ExitCS_NoAction     ; Ball missed to the right
+
+HitThePaddle_CS:
+    ; Ball hit the paddle
+    mov ballUp, 1           ; Make ball go up
+    jmp ExitCS_NoAction     ; Action taken, exit
+
+FellOffBottom_CS:           ; Ball fell off screen (ballY > 170)
+    cmp gamemode, 1         ; Is it Timed Mode?
+    jne LevelModeDrop_CS    ; If not, handle Level Mode ball drop
+
+    ; --- Timed Mode Ball Drop ---
+    call SubtractFiveSeconds ; Deduct 5 seconds
+
+    ; Flash timer red
+    mov byte ptr [timer_color], 0Ch ; Set timer color to Red
+    call printTime                  ; Print timer in red
+
+    call ShortDelayForFlash         ; Wait for a short period
+
+    mov byte ptr [timer_color], 0Fh ; Set timer color back to Normal (e.g., White)
+    call printTime                  ; Print timer in normal color
+
+    call stopTime           ; Check if time is up
+    cmp begin, 0            ; Did game end?
+    je ExitCS_GameOver      ; If yes, go to game over exit
+
+    ; Timed mode, game not over, reset ball
+    redrawball 0            ; Erase ball
+    mov ballY, 163          ; Reset ball Y
+    mov ballX, 158          ; Reset ball X
+    mov ballUp, 1           ; Set ball direction up
+    mov ballLeft, 1         ; Set ball direction left
+    redrawball 15           ; Draw ball
+    jmp ExitCS_NoAction     ; Continue game
+
+LevelModeDrop_CS:
+    ; --- Level Mode Ball Drop ---
+    cmp lives, 0
+    je LevelModeFinish_CS   ; If no lives left, game over
+    call removeLives        ; Remove a life display
+    call decLives           ; Decrement life count & reset ball (decLives calls gameLoop)
+    jmp ExitCS_NoAction     ; Likely won't be reached if decLives loops
+
+LevelModeFinish_CS:
+    mov begin, 0            ; Mark game as ended
+    redrawball 0            ; Erase ball
+    redrawStriker 0         ; Erase striker
+    call GameOverPage       ; Show game over screen
+    ; Fall through to ExitCS_GameOver
+
+ExitCS_GameOver:            ; Exit path if game ended in this procedure
+    pop dx
     pop cx
     pop bx
     pop ax
     ret
-	
-	check1:
-		cmp gamemode, 1                   ;checks if timed mode is chosen 
-		jl decLives1                      ;if not, jump to decLives1 
-		redrawball 0                      ;if yes, then remove ball at current position 
-		mov ballY, 163                    ;sets y-loc to the initial position 
-		mov ballX, 158                    ;sets x-loc to the initial position 
-		mov ballUp, 1                     ;moves the ball upwards 
-		mov ballLeft, 1                   ;moves the ball to the left 
-		redrawball 15                     ;draws the ball at initial location  
-		call gameloop                     ;continues the loop 
-		ret
-		
-	;---if level mode is chosen--- 
-	decLives1:
-		cmp lives, 0                      ;checks if lives=0       
-		je finish                         ;if yes, then game over 
-		call removeLives                  ;if not, then remove the hearts on the screen (will be drawn in the gameloop)
-		call decLives                     ;decrements the lives count by one, and reset's ball's position
-		ret
-		
-	;---if lives=0---
-    finish:  
-		mov begin, 0                      ;indicates that the game has ended 
-		redrawball 0                      ;removes ball 
-		redrawStriker 0                   ;removes striker 
-		call GameOverPage	              ;calls game over page 
-		ret 
+
+ExitCS_NoAction:            ; General exit path if no game-ending event or ball was hit
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
 CollisionStriker endp
 
 movement1:
@@ -2658,52 +2775,74 @@ removeLives endp
 
 
 ; ----------------------------------------
-;                 Timer
+;         Timer Display Procedure
+; ----------------------------------------
+; ----------------------------------------
+;         Timer Display Procedure
 ; ----------------------------------------
 printTime proc
-	push ax
-	push dx
-	push cx
-	
-	;---sets timer's position---
-	mov ah, 02h                           
-	mov dh, 01h                           
-	mov dl, 13h
-	int 10h
-	
-	show:
-		cmp ones, 48                      ;checks if ones is equal to 48 (one value below the ASCII value of '0')
-		je tenths                         ;if yes, jump to tenths 
-		
-		;---if not print the values of tens and ones--- 
-		mov ah, 02h                       ;char output instruction
-		mov dx, tens
-		int 21h
-		
-		mov ah, 02h
-		mov dx, ones
-		int 21h
-	
-	;---deletes the timer on the screen---
-	mov cx, 02h                           ;sets counter for backspace 
-	backspace:
-		mov ah, 02h         
-		mov dl, 8h                        ;prints backspace 
-		int 21h
-		dec cx                            ;decrements counter 
-		jnz backspace                     ;if not 0, loop to backspace
-	
-	pop cx
-	pop ax
-	pop dx
-	ret
-	
-	;---if ones is done counting down from 9 to 0---
-	tenths:
-		dec tens                          ;decrements tens value (9=>8...)
-		mov ones, 57                      ;resets ones' value to '9'
-		jmp show                          ;prints the new values 
+    push ax
+    push bx ; Will be used for the color attribute
+    push cx
+    push dx
+
+    ; Set cursor position for the timer display
+    mov ah, 02h     ; BIOS function: Set Cursor Position
+    mov bh, 0       ; Page number 0
+    mov dh, 01h     ; Row 1 (or your desired row for the timer)
+    mov dl, 13h     ; Column 13 (or your desired starting column for the timer)
+    int 10h
+
+    ; Get the color to use from the timer_color variable
+    mov bl, [timer_color] ; Put the color attribute into BL for teletype output
+
+    ; Display the tens digit
+    mov ah, 0Eh     ; BIOS function: Teletype Output (prints char in AL with attribute in BL)
+    mov al, [tens]  ; AL = character to print (from 'tens' variable, which is a db)
+    ; BH = page number (should still be 0 from the cursor setting)
+    int 10h         ; Print the character in AL using the color attribute in BL
+
+    ; Display the ones digit
+    mov ah, 0Eh     ; BIOS function: Teletype Output
+    mov al, [ones]  ; AL = character to print (from 'ones' variable, which is a db)
+    int 10h         ; Print the character in AL using the color attribute in BL
+
+
+    mov ah, 02h     ; BIOS function: Set Cursor Position
+    mov bh, 0       ; Page number 0
+    ; dh (row) is still correct from the first cursor setting in this procedure
+    sub dl, 2       ; DL is currently to the right of the 'ones' digit.
+                    ; Subtract 2 to move the cursor back to the 'tens' digit position.
+    int 10h
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
 printTime endp
+
+ShortDelayForFlash proc
+    push ax ; Save AX register (good practice if using it or if interrupts might affect it)
+    push cx ; Save CX register
+    push dx ; We will use DX as an outer loop counter
+
+    mov dx, 10      ; OUTER LOOP COUNTER: Makes the inner loop run 10 times.
+                    ; Increase this '10' (e.g., to 20, 30, 50) to make the delay much longer.
+                    ; Decrease it if the delay is too long.
+OuterDelayLoop_SDF:
+    mov cx, 0FFFFh  ; INNER LOOP COUNTER: This is the maximum delay for CX with the 'loop' instruction.
+InnerDelayLoop_SDF:
+    loop InnerDelayLoop_SDF ; Consume the CX counter (inner delay)
+
+    dec dx              ; Decrease the outer loop counter
+    jnz OuterDelayLoop_SDF ; If DX is not yet zero, repeat the outer loop (and the inner loop)
+
+    pop dx
+    pop cx
+    pop ax
+    ret
+ShortDelayForFlash endp
 
 stopTime proc
 	cmp tens, 48                          ;checks if tens=0      
@@ -2729,35 +2868,49 @@ repeat:
 	jne repeat                            ;restarts game loop if begin=0
 
 gameLoop:
-	inc timeCtr                           ;increments time counter
-	call checkKeyboard                    ;checks keyboard inputs (left and right)
-   
-	cmp isPaused, 1                       ;check if game is paused
-	je gameLoop                           ;if paused, loop back without updating game state
-   
-	cmp gamemode, 0                       ;checks if level mode is chosen 
-	je none1                              ;if yes, then skip timer 
-   
-	cmp timeCtr, 100                      ;if not, check if time counter is 100 
-	jne none1                             ;if not, jump to none1 as timer is yet to be printed
-	dec ones                              ;if timeCtr=100, decrease the value of ones 
-	mov timeCtr, 0                        ;resets timeCtr
-	call stopTime                         ;checks if time is set to stop 
-	call printTime                        ;prints the time on the screen 
-	
-	;---if timer is not set to print---
-	none1:
-		cmp gamemode, 0                   ;checks if level mode is chosen 
-		jne noLives1                      ;if not, do not draw lives 
-		call drawLives                    ;if yes, draw lives 
-	
-	noLives1:
-		call Collisionwall                ;checks if the ball hits the walls
-		call CollisionStriker             ;checks if the ball hits the striker
-		call CollideB                     ;checks if tha ball hits the bricks 
-		call ballMove                     ;moves the ball 
-		call sleep                        ;continues the gameloop
-		jmp gameLoop                      ;loops the game
+    inc timeCtr
+    call checkKeyboard
+
+    cmp isPaused, 1
+    je gameLoop
+
+    cmp gamemode, 0
+    je none1_timer_logic ; Skip timer logic if not in timed mode
+
+    ; --- Timed Mode Logic ---
+    cmp timeCtr, 100    ; Has 1 second passed? (assuming 100 iterations = 1 sec)
+    jne none1_timer_logic ; If not, skip decrementing
+    mov timeCtr, 0      ; Reset 1-second counter
+
+    ; Decrement timer
+    dec byte ptr [ones] ; Decrement the ASCII value in 'ones'
+    cmp byte ptr [ones], ('0' - 1) ; Did 'ones' roll under '0'? (e.g., from '0' to '/')
+    jne PrintTheTime_GL ; If not, just print the new time
+
+    ; 'ones' was '0' and went below, so reset 'ones' to '9' and decrement 'tens'
+    mov byte ptr [ones], '9'
+    dec byte ptr [tens]
+    ; No need to check if tens went below '0' here, stopTime will handle it.
+    ; stopTime calls GameOverPage if tens and ones are both '0'.
+
+PrintTheTime_GL:
+    call printTime      ; Display the (potentially) updated time
+    call stopTime       ; Check if timer reached 00 and game should end
+
+none1_timer_logic:      ; Label for skipping timer logic or continuing after it
+    ; ... (rest of your game loop: drawLives if level mode, collision checks, ballMove, sleep) ...
+    cmp gamemode, 0
+    jne noLives1_GL     ; In timed mode, skip drawing lives
+    call drawLives      ; In level mode, draw lives
+noLives1_GL:
+    call Collisionwall
+    call CollisionStriker
+    call CollideB
+    call ballMove
+    call sleep
+    jmp gameLoop        ; Loop back
+
+; ... (exit label and ret for gameLoop if it's a separate proc, or just continue if it's inline) ...
     
 exit:
     ret
@@ -2829,6 +2982,7 @@ checkKeyboard proc
 		redrawBall 15
 		jmp noInput
 checkKeyboard endp
+
 
 ; ----------------------------------------
 ;             Pause Menu Functions
@@ -3007,24 +3161,40 @@ DrawScores proc
 DrawScores endp
 
 computeScore proc
-	push ax 
-	push cx
-	
-	mov ax, 5                             ;sets the value of the ax register to 5
-	sub tens, 48                          ;subtracts 48 from the current value of tens (e.g. tens=52 (ASCII of 4) - 48 (ASCII of 0) => tens=4)
-	sub ax, tens                          ;subtracts the value of tens from 5 (tens=4 -> 5-4=1)
-	mov cx, 10                            ;sets the value of the cx register to 10
-	mul cx                                ;multiplies the value of ax and cx (ax=1 -> 1*10 => ax=10)
-	mov timeScore, ax	                  ;moves the product to timeScore 
-	
-	mov ax, 10                            ;sets ax to 10
-	sub ones, 48                          ;subtracts 48 from the current value of ones (e.g. ones=55 (ASCII of 7) - 48 => ones=7)
-	sub ax, ones                          ;subtracts the value of ones from 10 (ones=7 -> 10-7=3)
-	add timeScore, ax                     ;adds the value of ax to timeScore (e.g. ax=3, timeScore=10 -> 3+10=13 (timed consumed))
-	
-	pop ax 
-	pop cx
-	ret
+    push ax
+    push bx
+    push cx
+    push dx
+
+    mov al, tens    ; Load ASCII char from tens (DB)
+    sub al, '0'     ; Convert to numeric value (e.g., '5' -> 5)
+    mov bl, al      ; Store numeric tens digit in BL
+
+    ; Your logic for calculating score based on '5 - tens_digit'
+    mov ax, 5       ; Or whatever your base for tens calculation is
+    sub al, bl      ; AL = base - (numeric tens digit)
+    cbw             ; Extend AL to AX
+
+    mov bl, 10
+    mul bl          ; AX = AL * BL
+    mov timeScore, ax ; timeScore is dw, AX is word -> OK
+
+    mov al, ones    ; Load ASCII char from ones (DB)
+    sub al, '0'     ; Convert to numeric value
+    mov bl, al      ; Store numeric ones digit in BL
+
+    ; Your logic for calculating score based on '10 - ones_digit' (or similar)
+    mov ax, 10      ; Or whatever your base for ones calculation is
+    sub al, bl      ; AL = base - (numeric ones digit)
+    cbw             ; Extend AL to AX
+
+    add timeScore, ax ; Add to existing timeScore (dw) -> OK
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
 computeScore endp
 
 printScore proc
@@ -3074,7 +3244,7 @@ GameCompletedPage proc
 	call drawBg
 	
 	;---prints "YOU DID IT!" text 
-	drawTitle 67, 24, 5, 19, 13          ;draw Y
+	drawTitle 67, 24, 5, 19, 13         ;draw Y
     drawTitle 73, 37, 13, 6, 13
     drawTitle 87, 24, 5, 19, 13
     drawTitle 77, 44, 6, 13, 13 
