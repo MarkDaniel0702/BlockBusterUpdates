@@ -11,6 +11,10 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	FileReadBuffer db 320 dup (?)
 	PixelsPerChar equ 8  
 
+	PlayMessage   DB "PRESS [P] TO PLAY", 0
+    PlayMsgLen    EQU 15 ; Length of PlayMessage (excluding null)
+    ControlsMessage DB "PRESS [C] TO VIEW CONTROLS", 0
+    ControlsMsgLen EQU 26 ; Length of ControlsMessage (excluding null)
 
 	congratulations_text db 'Congrats, ', '$'                          
 	score_text db 'Time Consumed: ', '$'                          
@@ -37,13 +41,13 @@ EXTERNDELAY = 3                                               ;delay for the mov
     max_length_msg      db 'Max Character limit reached!$'
 
     PauseTitleRow       db 9                    ; Character row for "GAME PAUSED" text
-    PauseTitleCol       db 13                   ; Character column for "GAME PAUSED" text
+    PauseTitleCol       db 14                   ; Character column for "GAME PAUSED" text
 
-    PauseResumeRow      db 11                   ; Character row for "RESUME" text
-    PauseResumeCol      db 14                   ; Character column for "RESUME" text
+    PauseResumeRow      db 12                   ; Character row for "RESUME" text
+    PauseResumeCol      db 17                   ; Character column for "RESUME" text
 
-    PauseMainRow        db 13                   ; Character row for "MAIN MENU" text
-    PauseMainCol        db 13                   ; Character column for "MAIN MENU" text
+    PauseMainRow        db 14                   ; Character row for "MAIN MENU" text
+    PauseMainCol        db 15                   ; Character column for "MAIN MENU" text
 
 	
 	controlB_text db '[B]Back', '$'                           
@@ -579,12 +583,14 @@ readLine:
 	ret
 PrintFullScreenBMP endp
 
+
 PrintOpeningPage proc
 	call setVideoMode ; Clear screen and set video mode
 	call drawBorder
 	call drawBg
 	
-	; Draw Letter B1
+	
+; Draw Letter B1
 	drawTitle 110, 38, 2, 3, 1
 	drawTitle 102, 32, 3, 3, 1
 	drawTitle 102, 18, 3, 4, 1
@@ -997,207 +1003,930 @@ PrintOpeningPage proc
 	drawTitle 224, 53, 4, 31, 10
 	drawTitle 221, 50, 2, 34, 10
 
-	; “Draw Letter P” - PRESS [P] TO PLAY
-	drawTitle 120, 147, 1, 2, 15
-	drawTitle 117, 149, 3, 1, 15
-	drawTitle 117, 146, 3, 1, 15
-	drawTitle 116, 146, 1, 7, 15
-	; “Draw Letter R”
-	drawTitle 125, 148, 1, 1, 15
-	drawTitle 124, 149, 1, 1, 15
-	drawTitle 123, 148, 1, 5, 15
-	; “Draw Letter E”
-	drawTitle 129, 152, 3, 1, 15
-	drawTitle 129, 150, 2, 1, 15
-	drawTitle 131, 149, 1, 2, 15
-	drawTitle 129, 148, 2, 1, 15
-	drawTitle 128, 149, 1, 3, 15
-	; “Draw Letter S”
-	drawTitle 133, 152, 4, 1, 15
-	drawTitle 136, 151, 2, 1, 15
-	drawTitle 134, 150, 3, 1, 15
-	drawTitle 133, 149, 2, 1, 15
-	drawTitle 134, 148, 4, 1, 15
-	; “Draw Letter S”
-	drawTitle 139, 152, 4, 1, 15
-	drawTitle 142, 151, 2, 1, 15
-	drawTitle 140, 150, 3, 1, 15
-	drawTitle 139, 149, 2, 1, 15
-	drawTitle 140, 148, 4, 1, 15
-	; “Draw Left Bracket”
-	drawTitle 149, 147, 1, 7, 15
-	drawTitle 149, 154, 2, 1, 15
-	drawTitle 149, 146, 2, 1, 15
-	; “Draw Letter P”
-	drawTitle 157, 147, 1, 2, 15
-	drawTitle 154, 149, 3, 1, 15
-	drawTitle 154, 146, 3, 1, 15
-	drawTitle 153, 146, 1, 7, 15
-	; “Draw Right Bracket”
-	drawTitle 162, 147, 1, 7, 15
-	drawTitle 162, 154, 2, 1, 15
-	drawTitle 162, 146, 2, 1, 15
-	; “Draw Letter T”
-	drawTitle 169, 148, 2, 1, 15
-	drawTitle 166, 148, 2, 1, 15
-	drawTitle 168, 152, 2, 1, 15
-	drawTitle 168, 146, 1, 6, 15
-	; “Draw Letter O”
-	drawTitle 174, 149, 1, 3, 15
-	drawTitle 172, 149, 1, 3, 15
-	drawTitle 172, 152, 3, 1, 15
-	drawTitle 172, 148, 3, 1, 15
-	; “Draw Letter P”
-	drawTitle 185, 147, 1, 2, 15
-	drawTitle 182, 149, 3, 1, 15
-	drawTitle 182, 146, 3, 1, 15
-	drawTitle 181, 146, 1, 7, 15
-	; “Draw Letter L”
-	drawTitle 188, 146, 1, 7, 15
-	; “Draw Letter A”
-	drawTitle 194, 148, 1, 5, 15
-	drawTitle 191, 152, 3, 1, 15
-	drawTitle 191, 150, 1, 2, 15
-	drawTitle 191, 149, 3, 1, 15
-	; “Draw Letter Y”
-	drawTitle 198, 151, 1, 3, 15
-	drawTitle 199, 149, 1, 2, 15
-	drawTitle 197, 149, 1, 2, 15
-	drawTitle 200, 148, 1, 1, 15
-	drawTitle 197, 153, 1, 1, 15
-	drawTitle 196, 148, 1, 1, 15
-
-	; “Draw Letter P” - PRESS [C] TO VIEW CONTROLS
-	drawTitle 88, 167, 1, 2, 15
-	drawTitle 85, 169, 3, 1, 15
-	drawTitle 85, 166, 3, 1, 15
-	drawTitle 84, 166, 1, 7, 15
-	; “Draw Letter R”
-	drawTitle 93, 168, 1, 1, 15
-	drawTitle 92, 169, 1, 1, 15
-	drawTitle 91, 168, 1, 5, 15
-	; “Draw Letter E”
-	drawTitle 97, 172, 3, 1, 15
-	drawTitle 97, 170, 2, 1, 15
-	drawTitle 99, 169, 1, 2, 15
-	drawTitle 97, 168, 2, 1, 15
-	drawTitle 96, 169, 1, 3, 15
-	; “Draw Letter S”
-	drawTitle 101, 172, 4, 1, 15
-	drawTitle 104, 171, 2, 1, 15
-	drawTitle 102, 170, 3, 1, 15
-	drawTitle 101, 169, 2, 1, 15 ; Corrected Y from 199
-	drawTitle 102, 168, 4, 1, 15
-	; “Draw Letter S”
-	drawTitle 107, 172, 4, 1, 15
-	drawTitle 110, 171, 2, 1, 15
-	drawTitle 108, 170, 3, 1, 15
-	drawTitle 107, 169, 2, 1, 15
-	drawTitle 108, 168, 4, 1, 15
-	; “Draw Left Bracket”
-	drawTitle 117, 167, 1, 7, 15
-	drawTitle 117, 174, 2, 1, 15
-	drawTitle 117, 166, 2, 1, 15
-	; “Draw Letter C”
-	drawTitle 122, 172, 3, 1, 15       ; A
-	drawTitle 121, 167, 1, 5, 15       ; A
-	drawTitle 122, 166, 3, 1, 15       ; A
-	drawTitle 125, 171, 1, 1, 15       ; A
-	drawTitle 125, 167, 1, 1, 15       ; A
-	; “Draw Right Bracket”
-	drawTitle 130, 167, 1, 7, 15
-	drawTitle 130, 174, 2, 1, 15
-	drawTitle 130, 166, 2, 1, 15
-	; “Draw Letter T”
-	drawTitle 137, 168, 2, 1, 15
-	drawTitle 134, 168, 2, 1, 15
-	drawTitle 136, 172, 2, 1, 15
-	drawTitle 136, 166, 1, 6, 15
-	; “Draw Letter O”
-	drawTitle 142, 169, 1, 3, 15
-	drawTitle 140, 169, 1, 3, 15
-	drawTitle 140, 172, 3, 1, 15
-	drawTitle 140, 168, 3, 1, 15
-	; “Draw Letter V”
-	drawTitle 151, 171, 1, 2, 15
-	drawTitle 152, 169, 1, 2, 15
-	drawTitle 150, 169, 1, 2, 15
-	drawTitle 153, 166, 1, 3, 15
-	drawTitle 149, 166, 1, 3, 15
-	; “Draw Letter I”
-	drawTitle 156, 166, 1, 1, 15
-	drawTitle 156, 168, 1, 5, 15
-	; “Draw Letter E”
-	drawTitle 160, 172, 3, 1, 15
-	drawTitle 160, 170, 2, 1, 15
-	drawTitle 162, 169, 1, 2, 15
-	drawTitle 160, 168, 2, 1, 15
-	drawTitle 159, 169, 1, 3, 15
-	; “Draw Letter W”
-	drawTitle 166, 171, 1, 2, 15
-	drawTitle 168, 171, 1, 2, 15
-	drawTitle 169, 169, 1, 2, 15
-	drawTitle 165, 169, 1, 2, 15
-	drawTitle 167, 168, 1, 3, 15
-	drawTitle 170, 168, 1, 1, 15
-	drawTitle 164, 168, 1, 1, 15
-	; “Draw Letter C” - CONTROLS
-	drawTitle 177, 172, 3, 1, 15       ; A
-	drawTitle 176, 167, 1, 5, 15       ; A
-	drawTitle 177, 166, 3, 1, 15       ; A
-	drawTitle 180, 171, 1, 1, 15       ; A
-	drawTitle 180, 167, 1, 1, 15       ; A
-	; “Draw Letter O”
-	drawTitle 185, 169, 1, 3, 15
-	drawTitle 183, 169, 1, 3, 15
-	drawTitle 183, 172, 3, 1, 15
-	drawTitle 183, 168, 3, 1, 15
-	; “Draw Letter N”
-	drawTitle 189, 168, 2, 1, 15
-	drawTitle 191, 169, 1, 4, 15
-	drawTitle 188, 168, 1, 5, 15
-	; “Draw Letter T”
-	drawTitle 195, 168, 2, 1, 15
-	drawTitle 192, 168, 2, 1, 15
-	drawTitle 194, 172, 2, 1, 15
-	drawTitle 194, 166, 1, 6, 15
-	; “Draw Letter R”
-	drawTitle 200, 168, 1, 1, 15
-	drawTitle 199, 169, 1, 1, 15
-	drawTitle 198, 168, 1, 5, 15
-	; “Draw Letter O”
-	drawTitle 205, 169, 1, 3, 15
-	drawTitle 203, 169, 1, 3, 15
-	drawTitle 203, 172, 3, 1, 15
-	drawTitle 203, 168, 3, 1, 15
-	; “Draw Letter L”
-	drawTitle 209, 166, 1, 7, 15
-	; “Draw Letter S”
-	drawTitle 211, 172, 4, 1, 15
-	drawTitle 214, 171, 2, 1, 15
-	drawTitle 212, 170, 3, 1, 15
-	drawTitle 211, 169, 2, 1, 15
-	drawTitle 212, 168, 4, 1, 15
-	; --- END NEW TITLE DESIGN ---
 
 
-	; Commented out original bitmap loading
-	; printOpening:
-	;	push offset OpeningFileName
-	;	push offset OpeningFileHandle
-	;	call OpenFile
-	;	push [OpeningFileHandle]
-	;	push offset FileReadBuffer
-	;	call PrintFullScreenBMP
-	;	push [OpeningFileHandle]
-	;	call CloseFile
+;“Draw Main Ball”
+	drawTitle 160, 128, 4, 9, 8
+	drawTitle 181, 112, 1, 7, 8
+	drawTitle 180, 109, 1, 12, 8
+	drawTitle 179, 108, 1, 15, 8
+	drawTitle 178, 106, 1, 20, 8
+	drawTitle 177, 111, 1, 16, 8
+	drawTitle 175, 116, 2, 13, 8
+	drawTitle 174, 118, 1, 12, 8
+	drawTitle 172, 121, 2, 11, 8
+	drawTitle 169, 124, 3, 3, 8
+	drawTitle 170, 127, 2, 7, 8
+	drawTitle 168, 127, 2, 8, 8
+	drawTitle 166, 127, 2, 8, 8
+	drawTitle 164, 128, 2, 8, 8
+	drawTitle 158, 129, 2, 8, 8
+	drawTitle 156, 130, 2, 7, 8
+	drawTitle 154, 130, 2, 6, 8
+	drawTitle 152, 130, 2, 6, 8
+	drawTitle 150, 130, 2, 5, 8
+	drawTitle 148, 129, 2, 5, 8
+	drawTitle 146, 128, 2, 4, 8
+	drawTitle 144, 127, 2, 4, 8
+	drawTitle 142, 126, 2, 4, 8
+	drawTitle 138, 123, 2, 4, 8
+	drawTitle 140, 124, 2, 4, 8
+	drawTitle 171, 97, 2, 2, 4
+	drawTitle 167, 95, 2, 3, 4
+	drawTitle 169, 96, 2, 5, 4
+	drawTitle 166, 124, 3, 3, 4
+	drawTitle 166, 121, 6, 3, 4
+	drawTitle 166, 118, 8, 3, 4
+	drawTitle 171, 99, 5, 3, 4
+	drawTitle 171, 102, 6, 3, 4
+	drawTitle 171, 105, 7, 3, 4
+	drawTitle 171, 108, 7, 3, 4
+	drawTitle 169, 111, 8, 3, 4
+	drawTitle 167, 114, 10, 2, 4
+	drawTitle 165, 116, 10, 2, 4
+	drawTitle 164, 118, 2, 10, 4
+	drawTitle 162, 121, 2, 7, 4
+	drawTitle 160, 121, 2, 7, 4
+	drawTitle 158, 122, 2, 7, 4
+	drawTitle 156, 123, 2, 7, 4
+	drawTitle 152, 123, 2, 7, 4
+	drawTitle 154, 123, 2, 7, 4
+	drawTitle 150, 123, 2, 7, 4
+	drawTitle 148, 123, 2, 6, 4
+	drawTitle 146, 122, 2, 6, 4
+	drawTitle 144, 121, 2, 6, 4
+	drawTitle 142, 120, 2, 6, 4
+	drawTitle 140, 119, 2, 5, 4
+	drawTitle 138, 118, 2, 5, 4
+	drawTitle 150, 110, 2, 13, 12
+	drawTitle 151, 94, 5, 3, 12
+	drawTitle 148, 95, 3, 3, 12
+	drawTitle 145, 97, 3, 3, 12
+	drawTitle 143, 100, 3, 3, 12
+	drawTitle 138, 107, 2, 6, 12
+	drawTitle 138, 113, 2, 6, 12
+	drawTitle 140, 105, 2, 14, 12
+	drawTitle 142, 103, 2, 17, 12
+	drawTitle 144, 110, 2, 11, 12
+	drawTitle 146, 111, 2, 11, 12
+	drawTitle 148, 110, 2, 13, 12
+	drawTitle 152, 108, 2, 15, 12
+	drawTitle 162, 118, 2, 3, 12
+	drawTitle 160, 118, 2, 3, 12
+	drawTitle 158, 118, 2, 4, 12
+	drawTitle 156, 118, 2, 5, 12
+	drawTitle 154, 106, 2, 17, 12
+	drawTitle 169, 101, 2, 10, 12
+	drawTitle 167, 98, 2, 16, 12
+	drawTitle 165, 95, 2, 21, 12
+	drawTitle 156, 94, 9, 24, 12
+	drawTitle 151, 97, 5, 7, 15
+	drawTitle 154, 104, 2, 2, 15
+	drawTitle 152, 104, 2, 4, 15
+	drawTitle 150, 108, 2, 2, 15
+	drawTitle 148, 108, 2, 2, 15
+	drawTitle 144, 103, 2, 7, 15
+	drawTitle 146, 100, 2, 11, 15
+	drawTitle 148, 98, 4, 10, 15
+
+
+;“Draw Block 1”
+
+	drawTitle 4, 194, 35, 2, 6
+	drawTitle 4, 182, 35, 2, 6
+	drawTitle 37, 184, 2, 10, 6
+	drawTitle 4, 184, 2, 10, 6
+	drawTitle 39, 182, 2, 14, 7
+	drawTitle 2, 182, 2, 14, 7
+	drawTitle 2, 196, 39, 2, 7
+	drawTitle 6, 184, 31, 10, 7
+	drawTitle 2, 180, 39, 2, 7
+
+
+;“Draw Block 2”
+
+	drawTitle 48, 194, 46, 2, 9
+	drawTitle 48, 182, 46, 2, 9
+	drawTitle 94, 182, 2, 14, 9
+	drawTitle 46, 182, 2, 14, 9
+	drawTitle 96, 182, 2, 14, 11
+	drawTitle 44, 196, 54, 2, 11
+	drawTitle 48, 184, 46, 10, 11
+	drawTitle 44, 180, 54, 2, 11
+	drawTitle 44, 182, 2, 14, 11
+
+
+;“Draw Block 3”
+
+	drawTitle 155, 184, 2, 10, 5
+	drawTitle 103, 184, 2, 10, 5
+	drawTitle 103, 194, 54, 2, 5
+	drawTitle 103, 182, 54, 2, 5
+	drawTitle 105, 184, 50, 10, 13
+	drawTitle 103, 196, 54, 2, 13
+	drawTitle 103, 180, 54, 2, 13
+	drawTitle 157, 180, 2, 18, 13
+	drawTitle 101, 180, 2, 18, 13
+
+
+;“Draw Block 4”
+
+	drawTitle 216, 184, 2, 10, 6
+	drawTitle 164, 184, 2, 10, 6
+	drawTitle 164, 194, 54, 2, 6
+	drawTitle 164, 182, 54, 2, 6
+	drawTitle 166, 184, 50, 10, 7
+	drawTitle 164, 196, 54, 2, 7
+	drawTitle 164, 180, 54, 2, 7
+	drawTitle 218, 180, 2, 18, 7
+	drawTitle 162, 180, 2, 18, 7
+
+
+;“Draw Block 5”
+
+	drawTitle 227, 194, 46, 2, 5
+	drawTitle 227, 182, 46, 2, 5
+	drawTitle 273, 182, 2, 14, 5
+	drawTitle 225, 182, 2, 14, 5
+	drawTitle 275, 182, 2, 14, 13
+	drawTitle 223, 196, 54, 2, 13
+	drawTitle 227, 184, 46, 10, 13
+	drawTitle 223, 180, 54, 2, 13
+	drawTitle 223, 182, 2, 14, 13
+
+
+
+;“Draw Block 6”
+
+	drawTitle 281, 194, 35, 2, 4
+	drawTitle 281, 182, 35, 2, 4
+	drawTitle 314, 184, 2, 10, 4
+	drawTitle 281, 184, 2, 10, 4
+	drawTitle 316, 182, 2, 14, 12
+	drawTitle 279, 182, 2, 14, 12
+	drawTitle 279, 196, 39, 2, 12
+	drawTitle 283, 184, 31, 10, 12
+	drawTitle 279, 180, 39, 2, 12
+
+
+;“Draw Block 7”
+
+	drawTitle 6, 153, 38, 2, 9
+	drawTitle 6, 143, 38, 2, 9
+	drawTitle 44, 143, 2, 12, 9
+	drawTitle 4, 143, 2, 12, 9
+	drawTitle 6, 145, 38, 8, 11
+	drawTitle 4, 155, 42, 2, 11
+	drawTitle 4, 141, 42, 2, 11
+	drawTitle 46, 141, 2, 16, 11
+	drawTitle 2, 141, 2, 16, 11
+
+
+;“Draw Block 8”
+
+	drawTitle 276, 130, 38, 2, 5
+	drawTitle 276, 120, 38, 2, 5
+	drawTitle 314, 120, 2, 12, 5
+	drawTitle 274, 120, 2, 12, 5
+	drawTitle 276, 122, 38, 8, 13
+	drawTitle 274, 132, 42, 2, 13
+	drawTitle 274, 118, 42, 2, 13
+	drawTitle 316, 118, 2, 16, 13
+	drawTitle 272, 118, 2, 16, 13
+
+
+;“Draw Block 9”
+
+	drawTitle 7, 171, 8, 2, 15
+	drawTitle 7, 164, 8, 2, 15
+	drawTitle 15, 164, 2, 9, 15
+	drawTitle 5, 164, 2, 9, 15
+	drawTitle 7, 166, 8, 5, 13
+	drawTitle 5, 173, 12, 2, 13
+	drawTitle 5, 162, 12, 2, 13
+	drawTitle 17, 162, 2, 13, 13
+	drawTitle 3, 162, 2, 13, 13
+
+
+
+
+
+;“Draw Block 11”
+
+	drawTitle 7, 132, 11, 2, 4
+	drawTitle 7, 125, 11, 2, 4
+	drawTitle 18, 125, 2, 9, 4
+	drawTitle 5, 125, 2, 9, 4
+	drawTitle 7, 127, 11, 5, 12
+	drawTitle 5, 134, 15, 2, 12
+	drawTitle 5, 123, 15, 2, 12
+	drawTitle 20, 123, 2, 13, 12
+	drawTitle 3, 123, 2, 13, 12
+
+
+
+
+;“Draw Block 12”
+
+	drawTitle 279, 171, 32, 2, 6
+	drawTitle 279, 162, 32, 2, 6
+	drawTitle 311, 162, 2, 11, 6
+	drawTitle 277, 162, 2, 11, 6
+	drawTitle 279, 164, 32, 7, 7
+	drawTitle 313, 159, 3, 17, 7
+	drawTitle 277, 173, 36, 3, 7
+	drawTitle 277, 159, 36, 3, 7
+	drawTitle 274, 159, 3, 17, 7
+
+
+;“Draw Block 13”
+
+	drawTitle 270, 151, 38, 2, 4
+	drawTitle 270, 141, 38, 2, 4
+	drawTitle 308, 141, 2, 12, 4
+	drawTitle 268, 141, 2, 12, 4
+	drawTitle 270, 143, 38, 8, 12
+	drawTitle 268, 153, 42, 2, 12
+	drawTitle 268, 139, 42, 2, 12
+	drawTitle 310, 139, 2, 16, 12
+	drawTitle 266, 139, 2, 16, 12
+
+;“Draw Block 14”
+
+	drawTitle 28, 173, 38, 2, 4
+	drawTitle 28, 163, 38, 2, 4
+	drawTitle 66, 163, 2, 12, 4
+	drawTitle 26, 163, 2, 12, 4
+	drawTitle 28, 165, 38, 8, 12
+	drawTitle 26, 175, 42, 2, 12
+	drawTitle 26, 161, 42, 2, 12
+	drawTitle 68, 161, 2, 16, 12
+	drawTitle 24, 161, 2, 16, 12
+	
+;“Draw Grey Block”
+
+drawTitle 262, 45, 2, 2, 7
+drawTitle 310, 30, 2, 4, 7
+drawTitle 308, 26, 2, 8, 7
+drawTitle 264, 46, 2, 4, 7
+drawTitle 266, 44, 2, 10, 7
+drawTitle 268, 43, 2, 12, 7
+drawTitle 270, 42, 2, 12, 7
+drawTitle 272, 41, 2, 12, 7
+drawTitle 247, 40, 2, 12, 7
+drawTitle 276, 39, 2, 12, 7
+drawTitle 278, 38, 2, 12, 7
+drawTitle 280, 37, 2, 12, 7
+drawTitle 282, 36, 2, 12, 7
+drawTitle 284, 35, 2, 12, 7
+drawTitle 286, 34, 2, 12, 7
+drawTitle 288, 33, 2, 12, 7
+drawTitle 290, 32, 2, 12, 7
+drawTitle 292, 31, 2, 12, 7
+drawTitle 294, 30, 2, 12, 7
+drawTitle 296, 29, 2, 12, 7
+drawTitle 298, 28, 2, 12, 7
+drawTitle 300, 27, 2, 12, 7
+drawTitle 302, 26, 2, 12, 7
+drawTitle 304, 26, 2, 12, 7
+drawTitle 306, 24, 2, 12, 7
+drawTitle 265, 58, 2, 2, 7
+drawTitle 264, 56, 2, 2, 7
+drawTitle 263, 54, 2, 2, 7
+drawTitle 262, 52, 2, 2, 7
+drawTitle 261, 50, 2, 2, 7
+drawTitle 260, 48, 2, 2, 7
+drawTitle 259, 46, 2, 2, 7
+drawTitle 258, 44, 2, 2, 7
+drawTitle 315, 33, 2, 2, 7
+drawTitle 314, 31, 2, 2, 7
+drawTitle 313, 29, 2, 2, 7
+drawTitle 312, 27, 2, 2, 7
+drawTitle 311, 25, 2, 2, 7
+drawTitle 310, 23, 2, 2, 7
+drawTitle 309, 21, 2, 2, 7
+drawTitle 267, 57, 2, 2, 7
+drawTitle 269, 56, 2, 2, 7
+drawTitle 271, 55, 2, 2, 7
+drawTitle 273, 54, 2, 2, 7
+drawTitle 275, 53, 2, 2, 7
+drawTitle 277, 52, 2, 2, 7
+drawTitle 279, 51, 2, 2, 7
+drawTitle 281, 50, 2, 2, 7
+drawTitle 283, 49, 2, 2, 7
+drawTitle 285, 48, 2, 2, 7
+drawTitle 287, 47, 2, 2, 7
+drawTitle 289, 46, 2, 2, 7
+drawTitle 291, 45, 2, 2, 7
+drawTitle 293, 44, 2, 2, 7
+drawTitle 295, 43, 2, 2, 7
+drawTitle 297, 42, 2, 2, 7
+drawTitle 299, 41, 2, 2, 7
+drawTitle 301, 40, 2, 2, 7
+drawTitle 303, 39, 2, 2, 7
+drawTitle 305, 38, 2, 2, 7
+drawTitle 307, 37, 2, 2, 7
+drawTitle 309, 36, 2, 2, 7
+drawTitle 311, 35, 2, 2, 7
+drawTitle 313, 34, 2, 2, 7
+drawTitle 260, 43, 2, 2, 7
+drawTitle 262, 42, 2, 2, 7
+drawTitle 264, 41, 2, 2, 7
+drawTitle 266, 40, 2, 2, 7
+drawTitle 268, 39, 2, 2, 7
+drawTitle 270, 38, 2, 2, 7
+drawTitle 272, 37, 2, 2, 7
+drawTitle 274, 36, 2, 2, 7
+drawTitle 276, 35, 2, 2, 7
+drawTitle 278, 34, 2, 2, 7
+drawTitle 280, 33, 2, 2, 7
+drawTitle 282, 32, 2, 2, 7
+drawTitle 284, 31, 2, 2, 7
+drawTitle 286, 30, 2, 2, 7
+drawTitle 288, 29, 2, 2, 7
+drawTitle 290, 28, 2, 2, 7
+drawTitle 292, 27, 2, 2, 7
+drawTitle 294, 26, 2, 2, 7
+drawTitle 296, 25, 2, 2, 7
+drawTitle 298, 24, 2, 2, 7
+drawTitle 300, 23, 2, 2, 7
+drawTitle 302, 22, 2, 2, 7
+drawTitle 304, 21, 2, 2, 7
+drawTitle 306, 20, 2, 2, 7
+drawTitle 308, 19, 2, 2, 7
+
+
+;“Draw Blue Block”
+
+drawTitle 255, 104, 2, 2, 11
+drawTitle 303, 89, 2, 4, 11
+drawTitle 301, 85, 2, 8, 11
+drawTitle 257, 105, 2, 4, 11
+drawTitle 259, 103, 2, 10, 11
+drawTitle 261, 102, 2, 12, 11
+drawTitle 263, 101, 2, 12, 11
+drawTitle 265, 100, 2, 12, 11
+drawTitle 267, 99, 2, 12, 11
+drawTitle 269, 98, 2, 12, 11
+drawTitle 271, 97, 2, 12, 11
+drawTitle 273, 96, 2, 12, 11
+drawTitle 275, 95, 2, 12, 11
+drawTitle 277, 94, 2, 12, 11
+drawTitle 279, 93, 2, 12, 11
+drawTitle 281, 92, 2, 12, 11
+drawTitle 283, 91, 2, 12, 11
+drawTitle 285, 90, 2, 12, 11
+drawTitle 287, 89, 2, 12, 11
+drawTitle 289, 88, 2, 12, 11
+drawTitle 291, 87, 2, 12, 11
+drawTitle 293, 86, 2, 12, 11
+drawTitle 295, 85, 2, 12, 11
+drawTitle 297, 84, 2, 12, 11
+drawTitle 299, 83, 2, 12, 11
+drawTitle 258, 117, 2, 2, 11
+drawTitle 257, 115, 2, 2, 11
+drawTitle 256, 113, 2, 2, 11
+drawTitle 255, 111, 2, 2, 11
+drawTitle 254, 109, 2, 2, 11
+drawTitle 253, 107, 2, 2, 11
+drawTitle 252, 105, 2, 2, 11
+drawTitle 251, 103, 2, 2, 11
+drawTitle 308, 92, 2, 2, 11
+drawTitle 307, 90, 2, 2, 11
+drawTitle 306, 88, 2, 2, 11
+drawTitle 305, 86, 2, 2, 11
+drawTitle 304, 84, 2, 2, 11
+drawTitle 303, 82, 2, 2, 11
+drawTitle 302, 80, 2, 2, 11
+drawTitle 260, 116, 2, 2, 11
+drawTitle 262, 115, 2, 2, 11
+drawTitle 264, 114, 2, 2, 11
+drawTitle 266, 113, 2, 2, 11
+drawTitle 268, 112, 2, 2, 11
+drawTitle 270, 111, 2, 2, 11
+drawTitle 272, 110, 2, 2, 11
+drawTitle 274, 109, 2, 2, 11
+drawTitle 276, 108, 2, 2, 11
+drawTitle 278, 107, 2, 2, 11
+drawTitle 280, 106, 2, 2, 11
+drawTitle 282, 105, 2, 2, 11
+drawTitle 284, 104, 2, 2, 11
+drawTitle 286, 103, 2, 2, 11
+drawTitle 288, 102, 2, 2, 11
+drawTitle 290, 101, 2, 2, 11
+drawTitle 292, 100, 2, 2, 11
+drawTitle 294, 99, 2, 2, 11
+drawTitle 296, 98, 2, 2, 11
+drawTitle 298, 97, 2, 2, 11
+drawTitle 300, 96, 2, 2, 11
+drawTitle 302, 95, 2, 2, 11
+drawTitle 304, 94, 2, 2, 11
+drawTitle 306, 93, 2, 2, 11
+drawTitle 253, 102, 2, 2, 11
+drawTitle 255, 101, 2, 2, 11
+drawTitle 257, 100, 2, 2, 11
+drawTitle 259, 99, 2, 2, 11
+drawTitle 261, 98, 2, 2, 11
+drawTitle 263, 97, 2, 2, 11
+drawTitle 265, 96, 2, 2, 11
+drawTitle 267, 95, 2, 2, 11
+drawTitle 269, 94, 2, 2, 11
+drawTitle 271, 93, 2, 2, 11
+drawTitle 273, 92, 2, 2, 11
+drawTitle 275, 91, 2, 2, 11
+drawTitle 277, 90, 2, 2, 11
+drawTitle 279, 89, 2, 2, 11
+drawTitle 281, 88, 2, 2, 11
+drawTitle 283, 87, 2, 2, 11
+drawTitle 285, 86, 2, 2, 11
+drawTitle 287, 86, 2, 2, 11
+drawTitle 289, 84, 2, 2, 11
+drawTitle 291, 83, 2, 2, 11
+drawTitle 293, 82, 2, 2, 11
+drawTitle 295, 81, 2, 2, 11
+drawTitle 297, 80, 2, 2, 11
+drawTitle 299, 79, 2, 2, 11
+drawTitle 301, 78, 2, 2, 11
+
+
+;“Draw Red Block”
+
+drawTitle 58, 43, 2, 2, 12
+drawTitle 10, 28, 2, 4, 12
+drawTitle 12, 24, 2, 8, 12
+drawTitle 56, 44, 2, 4, 12
+drawTitle 54, 42, 2, 10, 12
+drawTitle 52, 41, 2, 12, 12
+drawTitle 50, 40, 2, 12, 12
+drawTitle 48, 39, 2, 12, 12
+drawTitle 46, 38, 2, 12, 12
+drawTitle 44, 37, 2, 12, 12
+drawTitle 42, 36, 2, 12, 12
+drawTitle 40, 35, 2, 12, 12
+drawTitle 38, 34, 2, 12, 12
+drawTitle 36, 33, 2, 12, 12
+drawTitle 34, 32, 2, 12, 12
+drawTitle 32, 31, 2, 12, 12
+drawTitle 30, 30, 2, 12, 12
+drawTitle 28, 29, 2, 12, 12
+drawTitle 26, 28, 2, 12, 12
+drawTitle 24, 27, 2, 12, 12
+drawTitle 22, 26, 2, 12, 12
+drawTitle 20, 25, 2, 12, 12
+drawTitle 18, 24, 2, 12, 12
+drawTitle 16, 23, 2, 12, 12
+drawTitle 14, 22, 2, 12, 12
+drawTitle 55, 56, 2, 2, 12
+drawTitle 56, 54, 2, 2, 12
+drawTitle 57, 52, 2, 2, 12
+drawTitle 58, 50, 2, 2, 12
+drawTitle 59, 58, 2, 2, 12
+drawTitle 60, 46, 2, 2, 12
+drawTitle 61, 44, 2, 2, 12
+drawTitle 62, 42, 2, 2, 12
+drawTitle 5, 31, 2, 2, 12
+drawTitle 6, 29, 2, 2, 12
+drawTitle 7, 27, 2, 2, 12
+drawTitle 8, 25, 2, 2, 12
+drawTitle 9, 23, 2, 2, 12
+drawTitle 10, 21, 2, 2, 12
+drawTitle 11, 19, 2, 2, 12
+drawTitle 53, 55, 2, 2, 12
+drawTitle 51, 54, 2, 2, 12
+drawTitle 49, 53, 2, 2, 12
+drawTitle 47, 52, 2, 2, 12
+drawTitle 45, 51, 2, 2, 12
+drawTitle 43, 50, 2, 2, 12
+drawTitle 41, 49, 2, 2, 12
+drawTitle 39, 48, 2, 2, 12
+drawTitle 37, 47, 2, 2, 12
+drawTitle 35, 46, 2, 2, 12
+drawTitle 33, 45, 2, 2, 12
+drawTitle 31, 44, 2, 2, 12
+drawTitle 29, 43, 2, 2, 12
+drawTitle 27, 42, 2, 2, 12
+drawTitle 25, 41, 2, 2, 12
+drawTitle 23, 40, 2, 2, 12
+drawTitle 21, 39, 2, 2, 12
+drawTitle 19, 38, 2, 2, 12
+drawTitle 17, 37, 2, 2, 12
+drawTitle 15, 36, 2, 2, 12
+drawTitle 13, 35, 2, 2, 12
+drawTitle 11, 34, 2, 2, 12
+drawTitle 9, 33, 2, 2, 12
+drawTitle 7, 32, 2, 2, 12
+drawTitle 60, 41, 2, 2, 12
+drawTitle 58, 40, 2, 2, 12
+drawTitle 56, 39, 2, 2, 12
+drawTitle 54, 38, 2, 2, 12
+drawTitle 52, 37, 2, 2, 12
+drawTitle 50, 36, 2, 2, 12
+drawTitle 48, 35, 2, 2, 12
+drawTitle 46, 35, 2, 2, 12
+drawTitle 44, 33, 2, 2, 12
+drawTitle 42, 32, 2, 2, 12
+drawTitle 40, 31, 2, 2, 12
+drawTitle 38, 30, 2, 2, 12
+drawTitle 36, 29, 2, 2, 12
+drawTitle 34, 28, 2, 2, 12
+drawTitle 32, 27, 2, 2, 12
+drawTitle 30, 26, 2, 2, 12
+drawTitle 28, 25, 2, 2, 12
+drawTitle 26, 24, 2, 2, 12
+drawTitle 24, 23, 2, 2, 12
+drawTitle 22, 22, 2, 2, 12
+drawTitle 20, 21, 2, 2, 12
+drawTitle 18, 20, 2, 2, 12
+drawTitle 16, 19, 2, 2, 12
+drawTitle 14, 18, 2, 2, 12
+drawTitle 12, 17, 2, 2, 12
+
+
+;“Draw Pink Block”
+
+drawTitle 64, 104, 2, 2, 13
+drawTitle 16, 89, 2, 4, 13
+drawTitle 18, 85, 2, 8, 13
+drawTitle 62, 105, 2, 4, 13
+drawTitle 60, 103, 2, 10, 13
+drawTitle 58, 102, 2, 12, 13
+drawTitle 56, 101, 2, 12, 13
+drawTitle 54, 100, 2, 12, 13
+drawTitle 52, 99, 2, 12, 13
+drawTitle 50, 98, 2, 12, 13
+drawTitle 48, 97, 2, 12, 13
+drawTitle 46, 96, 2, 12, 13
+drawTitle 44, 95, 2, 12, 13
+drawTitle 42, 94, 2, 12, 13
+drawTitle 40, 93, 2, 12, 13
+drawTitle 38, 92, 2, 12, 13
+drawTitle 36, 92, 2, 12, 13
+drawTitle 34, 90, 2, 12, 13
+drawTitle 32, 89, 2, 12, 13
+drawTitle 30, 88, 2, 12, 13
+drawTitle 28, 87, 2, 12, 13
+drawTitle 26, 86, 2, 12, 13
+drawTitle 24, 85, 2, 12, 13
+drawTitle 22, 84, 2, 12, 13
+drawTitle 20, 83, 2, 12, 13
+drawTitle 61, 117, 2, 2, 13
+drawTitle 62, 115, 2, 2, 13
+drawTitle 63, 113, 2, 2, 13
+drawTitle 64, 111, 2, 2, 13
+drawTitle 65, 109, 2, 2, 13
+drawTitle 66, 107, 2, 2, 13
+drawTitle 67, 105, 2, 2, 13
+drawTitle 68, 103, 2, 2, 13
+drawTitle 11, 92, 2, 2, 13
+drawTitle 12, 90, 2, 2, 13
+drawTitle 13, 88, 2, 2, 13
+drawTitle 14, 86, 2, 2, 13
+drawTitle 15, 84, 2, 2, 13
+drawTitle 16, 82, 2, 2, 13
+drawTitle 17, 80, 2, 2, 13
+drawTitle 59, 116, 2, 2, 13
+drawTitle 57, 115, 2, 2, 13
+drawTitle 55, 114, 2, 2, 13
+drawTitle 53, 113, 2, 2, 13
+drawTitle 51, 112, 2, 2, 13
+drawTitle 49, 111, 2, 2, 13
+drawTitle 47, 110, 2, 2, 13
+drawTitle 45, 109, 2, 2, 13
+drawTitle 43, 108, 2, 2, 13
+drawTitle 41, 107, 2, 2, 13
+drawTitle 39, 106, 2, 2, 13
+drawTitle 37, 105, 2, 2, 13
+drawTitle 35, 104, 2, 2, 13
+drawTitle 33, 103, 2, 2, 13
+drawTitle 31, 102, 2, 2, 13
+drawTitle 29, 101, 2, 2, 13
+drawTitle 27, 100, 2, 2, 13
+drawTitle 25, 99, 2, 2, 13
+drawTitle 23, 98, 2, 2, 13
+drawTitle 21, 97, 2, 2, 13
+drawTitle 19, 96, 2, 2, 13
+drawTitle 17, 95, 2, 2, 13
+drawTitle 15, 94, 2, 2, 13
+drawTitle 13, 93, 2, 2, 13
+drawTitle 66, 102, 2, 2, 13
+drawTitle 64, 101, 2, 2, 13
+drawTitle 62, 100, 2, 2, 13
+drawTitle 60, 99, 2, 2, 13
+drawTitle 58, 98, 2, 2, 13
+drawTitle 56, 97, 2, 2, 13
+drawTitle 54, 96, 2, 2, 13
+drawTitle 52, 95, 2, 2, 13
+drawTitle 50, 94, 2, 2, 13
+drawTitle 48, 93, 2, 2, 13
+drawTitle 46, 92, 2, 2, 13
+drawTitle 44, 91, 2, 2, 13
+drawTitle 42, 90, 2, 2, 13
+drawTitle 40, 89, 2, 2, 13
+drawTitle 38, 88, 2, 2, 13
+drawTitle 36, 87, 2, 2, 13
+drawTitle 34, 86, 2, 2, 13
+drawTitle 32, 85, 2, 2, 13
+drawTitle 30, 84, 2, 2, 13
+drawTitle 28, 83, 2, 2, 13
+drawTitle 26, 83, 2, 2, 13
+drawTitle 24, 82, 2, 2, 13
+drawTitle 22, 80, 2, 2, 13
+drawTitle 20, 79, 2, 2, 13
+drawTitle 18, 78, 2, 2, 13
+
+
+;“Draw Pink Ball”
+
+drawTitle 55, 14, 2, 2, 5
+drawTitle 57, 13, 2, 3, 5
+drawTitle 60, 8, 1, 6, 5
+drawTitle 59, 7, 1, 8, 5
+drawTitle 54, 8, 1, 2, 15
+drawTitle 55, 8, 1, 1, 15
+drawTitle 53, 7, 1, 1, 15
+drawTitle 52, 8, 2, 3, 15
+drawTitle 54, 6, 3, 2, 15
+drawTitle 50, 7, 1, 7, 13
+drawTitle 51, 7, 1, 7, 13
+drawTitle 55, 16, 4, 1, 13
+drawTitle 62, 8, 1, 6, 13
+drawTitle 61, 8, 1, 6, 13
+drawTitle 59, 6, 1, 1, 13
+drawTitle 60, 7, 1, 1, 13
+drawTitle 60, 14, 1, 1, 13
+drawTitle 59, 15, 1, 1, 13
+drawTitle 53, 15, 1, 1, 13
+drawTitle 52, 6, 1, 2, 13
+drawTitle 52, 11, 2, 4, 13
+drawTitle 54, 10, 1, 7, 13
+drawTitle 55, 9, 1, 5, 13
+drawTitle 56, 8, 1, 6, 13
+drawTitle 57, 6, 1, 7, 13
+drawTitle 58, 5, 1, 8, 13
+drawTitle 53, 5, 1, 2, 13
+drawTitle 54, 4, 4, 2, 13
+
+
+;“Draw Red Ball”
+
+drawTitle 10, 59, 2, 2, 4
+drawTitle 12, 58, 2, 3, 4
+drawTitle 15, 53, 1, 6, 4
+drawTitle 14, 52, 1, 8, 4
+drawTitle 9, 53, 1, 2, 15
+drawTitle 10, 53, 1, 1, 15
+drawTitle 8, 52, 1, 1, 15
+drawTitle 7, 53, 2, 3, 15
+drawTitle 9, 51, 3, 2, 15
+drawTitle 5, 52, 1, 7, 12
+drawTitle 6, 52, 1, 7, 12
+drawTitle 10, 61, 4, 1, 12
+drawTitle 17, 53, 1, 6, 12
+drawTitle 16, 53, 1, 6, 12
+drawTitle 14, 51, 1, 1, 12
+drawTitle 15, 52, 1, 1, 12
+drawTitle 15, 59, 1, 1, 12
+drawTitle 14, 60, 1, 1, 12
+drawTitle 8, 60, 1, 1, 12
+drawTitle 7, 51, 1, 2, 12
+drawTitle 7, 56, 2, 4, 12
+drawTitle 9, 55, 1, 7, 12
+drawTitle 10, 54, 1, 5, 12
+drawTitle 11, 53, 1, 6, 12
+drawTitle 12, 51, 1, 7, 12
+drawTitle 13, 50, 1, 8, 12
+drawTitle 8, 50, 1, 2, 12
+drawTitle 9, 49, 4, 2, 12
+
+
+;“Draw Blue Ball”
+
+drawTitle 94, 117, 2, 2, 9
+drawTitle 96, 116, 2, 3, 9
+drawTitle 99, 111, 1, 6, 9
+drawTitle 98, 110, 1, 8, 9
+drawTitle 93, 111, 1, 2, 15
+drawTitle 94, 111, 1, 1, 15
+drawTitle 92, 110, 1, 1, 15
+drawTitle 91, 111, 2, 3, 15
+drawTitle 93, 109, 3, 2, 15
+drawTitle 89, 110, 1, 7, 11
+drawTitle 90, 110, 1, 7, 11
+drawTitle 94, 119, 4, 1, 11
+drawTitle 101, 111, 1, 6, 11
+drawTitle 100, 111, 1, 6, 11
+drawTitle 98, 109, 1, 1, 11
+drawTitle 99, 110, 1, 1, 11
+drawTitle 99, 117, 1, 1, 11
+drawTitle 98, 118, 1, 1, 11
+drawTitle 92, 118, 1, 1, 11
+drawTitle 91, 109, 1, 2, 11
+drawTitle 91, 114, 2, 4, 11
+drawTitle 93, 113, 1, 7, 11
+drawTitle 94, 112, 1, 5, 11
+drawTitle 95, 111, 1, 6, 11
+drawTitle 96, 109, 1, 7, 11
+drawTitle 97, 108, 1, 8, 11
+drawTitle 92, 108, 1, 2, 11
+drawTitle 93, 107, 4, 2, 11
+
+
+;“Draw Grey Ball”
+
+drawTitle 62, 146, 2, 2, 8
+drawTitle 64, 145, 2, 3, 8
+drawTitle 67, 140, 1, 6, 8
+drawTitle 66, 139, 1, 8, 8
+drawTitle 61, 140, 1, 2, 15
+drawTitle 62, 140, 1, 1, 15
+drawTitle 60, 139, 1, 1, 15
+drawTitle 59, 140, 2, 3, 15
+drawTitle 61, 138, 3, 2, 15
+drawTitle 57, 139, 1, 7, 7
+drawTitle 58, 139, 1, 7, 7
+drawTitle 62, 148, 4, 1, 7
+drawTitle 69, 140, 1, 6, 7
+drawTitle 68, 140, 1, 6, 7
+drawTitle 66, 138, 1, 1, 7
+drawTitle 67, 139, 1, 1, 7
+drawTitle 67, 146, 1, 1, 7
+drawTitle 66, 147, 1, 1, 7
+drawTitle 60, 147, 1, 1, 7
+drawTitle 59, 138, 1, 2, 7
+drawTitle 59, 143, 2, 4, 7
+drawTitle 61, 142, 1, 7, 7
+drawTitle 62, 141, 1, 5, 7
+drawTitle 63, 140, 1, 6, 7
+drawTitle 64, 138, 1, 7, 7
+drawTitle 65, 137, 1, 8, 7
+drawTitle 60, 137, 1, 2, 7
+drawTitle 61, 136, 4, 2, 7
+
+
+;“Draw Grey Ball”
+
+drawTitle 287, 18, 2, 2, 8
+drawTitle 289, 17, 2, 3, 8
+drawTitle 292, 12, 1, 6, 8
+drawTitle 291, 11, 1, 8, 8
+drawTitle 286, 12, 1, 2, 15
+drawTitle 287, 12, 1, 1, 15
+drawTitle 285, 11, 1, 1, 15
+drawTitle 284, 12, 2, 3, 15
+drawTitle 286, 10, 3, 2, 15
+drawTitle 282, 11, 1, 7, 7
+drawTitle 283, 11, 1, 7, 7
+drawTitle 287, 20, 4, 1, 7
+drawTitle 294, 12, 1, 6, 7
+drawTitle 293, 12, 1, 6, 7
+drawTitle 291, 10, 1, 1, 7
+drawTitle 292, 11, 1, 1, 7
+drawTitle 292, 18, 1, 1, 7
+drawTitle 291, 19, 1, 1, 7
+drawTitle 285, 19, 1, 1, 7
+drawTitle 284, 10, 1, 2, 7
+drawTitle 284, 15, 2, 4, 7
+drawTitle 286, 14, 1, 7, 7
+drawTitle 287, 13, 1, 5, 7
+drawTitle 288, 12, 1, 6, 7
+drawTitle 289, 10, 1, 7, 7
+drawTitle 290, 9, 1, 8, 7
+drawTitle 285, 9, 1, 2, 7
+drawTitle 286, 8, 4, 2, 7
+
+
+;“Draw Red Ball”
+
+drawTitle 264, 80, 2, 2, 4
+drawTitle 266, 79, 2, 3, 4
+drawTitle 269, 74, 1, 6, 4
+drawTitle 268, 73, 1, 8, 4
+drawTitle 263, 74, 1, 2, 15
+drawTitle 264, 74, 1, 1, 15
+drawTitle 262, 73, 1, 1, 15
+drawTitle 261, 74, 2, 3, 15
+drawTitle 263, 72, 3, 2, 15
+drawTitle 259, 73, 1, 7, 12
+drawTitle 260, 73, 1, 7, 12
+drawTitle 264, 82, 4, 1, 12
+drawTitle 271, 74, 1, 6, 12
+drawTitle 270, 74, 1, 6, 12
+drawTitle 268, 72, 1, 1, 12
+drawTitle 269, 73, 1, 1, 12
+drawTitle 269, 80, 1, 1, 12
+drawTitle 268, 81, 1, 1, 12
+drawTitle 262, 81, 1, 1, 12
+drawTitle 261, 72, 1, 2, 12
+drawTitle 261, 77, 2, 4, 12
+drawTitle 263, 76, 1, 7, 12
+drawTitle 264, 75, 1, 5, 12
+drawTitle 265, 74, 1, 6, 12
+drawTitle 266, 72, 1, 7, 12
+drawTitle 267, 71, 1, 8, 12
+drawTitle 262, 71, 1, 2, 12
+drawTitle 263, 70, 4, 2, 12
+
+
+;“Draw Blue Ball”
+
+drawTitle 245, 132, 2, 2, 9
+drawTitle 247, 131, 2, 3, 9
+drawTitle 250, 126, 1, 6, 9
+drawTitle 249, 125, 1, 8, 9
+drawTitle 244, 126, 1, 2, 15
+drawTitle 245, 126, 1, 1, 15
+drawTitle 243, 125, 1, 1, 15
+drawTitle 242, 126, 2, 3, 15
+drawTitle 244, 124, 3, 2, 15
+drawTitle 240, 125, 1, 7, 11
+drawTitle 241, 125, 1, 7, 11
+drawTitle 245, 134, 4, 1, 11
+drawTitle 252, 126, 1, 6, 11
+drawTitle 251, 126, 1, 6, 11
+drawTitle 249, 124, 1, 1, 11
+drawTitle 250, 125, 1, 1, 11
+drawTitle 250, 132, 1, 1, 11
+drawTitle 249, 133, 1, 1, 11
+drawTitle 243, 133, 1, 1, 11
+drawTitle 242, 124, 1, 2, 11
+drawTitle 242, 129, 2, 4, 11
+drawTitle 244, 128, 1, 7, 11
+drawTitle 245, 127, 1, 5, 11
+drawTitle 246, 126, 1, 6, 11
+drawTitle 247, 124, 1, 7, 11
+drawTitle 248, 123, 1, 8, 11
+drawTitle 243, 123, 1, 2, 11
+drawTitle 244, 122, 4, 2, 11
+
+;“Stars”
+
+drawTitle 238, 145, 3, 3, 11
+drawTitle 298, 58, 3, 3, 11
+drawTitle 300, 6, 3, 3, 11
+drawTitle 4, 77, 3, 3, 11
+drawTitle 59, 69, 3, 3, 11
+drawTitle 245, 31, 3, 3, 5
+drawTitle 310, 75, 3, 3, 5
+drawTitle 253, 167, 3, 3, 5
+drawTitle 14, 108, 3, 3, 14
+drawTitle 219, 129, 3, 3, 14
+drawTitle 270, 9, 3, 3, 14
+drawTitle 87, 159, 3, 3, 5
+drawTitle 41, 120, 3, 3, 5
+drawTitle 312, 98, 3, 3, 4
+drawTitle 80, 134, 3, 3, 4
+drawTitle 48, 80, 3, 3, 4
+drawTitle 106, 105, 3, 3, 12
+drawTitle 231, 111, 3, 3, 12
+drawTitle 16, 6, 3, 3, 12
+drawTitle 106, 105, 3, 3, 12
+drawTitle 34, 58, 3, 3, 12
+
+
+
+
+
+
+    ; PRESS P TO PLAY
+    mov ah, 02h       
+    mov bh, 0         
+    mov dh, 18        
+    mov dl, 12        
+    int 10h
+
+    mov ah, 13h       
+    mov al, 01h       
+    mov bh, 0         ; Page number 0
+    mov bl, 0Fh       ; Attribute
+    mov cx, 18        ; Length of the string "PRESS P TO PLAY"
+    lea bp, PlayMessage 
+    push ds
+    pop es            
+    int 10h
+
+    ; PRESS C TO VIEW CONTROLS
+    mov ah, 02h       
+    mov bh, 0       
+    mov dh, 19       
+    mov dl, 7       
+    int 10h
+
+    mov ah, 13h       
+    mov al, 01h       ; Write mode
+    mov bh, 0         ; Page number 0
+    mov bl, 0Fh       ; Attribute
+    mov cx, 26        ; Length of the string "PRESS C TO VIEW CONTROLS"
+    lea bp, ControlsMessage 
+    push ds
+    pop es           
+    int 10h
 
 getKeyOpening:
 	mov ah, 0h ; Check keyboard input
 	int 16h
-	cmp ah, 19h ; Check if P is pressed
+	cmp ah, 19h ; Check if P is pressed (Scan code for 'P')
 	je procEndOpening
-	cmp ah, 2Eh ; Check if C is pressed
+	cmp ah, 2Eh ; Check if C is pressed (Scan code for 'C')
 	je procEndOpening1
 	jmp getKeyOpening ; If not, loop to getKeyOpening until P or C is pressed
 
@@ -1209,7 +1938,6 @@ procEndOpening1:
 	call StartPage ; Calls the controls page
 	ret
 PrintOpeningPage endp
-
 
 ; ----------------------------------------
 ;             Controls Page 
@@ -3807,7 +4535,6 @@ DoneFillingBox_SMP:
     lea dx, pauseMainMenuText
     int 21h
 
-    ; --- 5. Initialize selection and Set Underline for "RESUME" ---
     mov byte ptr [pauseOpt], 1  ; Default select "RESUME"
 
     mov al, [PauseResumeCol]
@@ -3947,23 +4674,21 @@ QuickResumeHandler_SMP_Action:
     ; Fall through
 
 PauseOptSelected_SMP_Action:
-    call deleteSelect       ; Delete underline BAGO mag-clear/mag-action
+    call deleteSelect       
 
     cmp byte ptr [pauseOpt], 1
     jne GoToMainMenu_SMP_Path
 
     ; RESUME Path
-    call clearPauseMenu     ; Burahin ang pause menu graphics at i-redraw ang game
+    call clearPauseMenu    
     mov isPaused, 0
-    jmp ExitShowPauseMenu_SMP   ; Direktang exit para bumalik sa game loop
+    jmp ExitShowPauseMenu_SMP   
 
 GoToMainMenu_SMP_Path:
     ; MAIN MENU Path
-    ; Hindi na kailangan i-call ang clearPauseMenu dito kasi ang StartPage magse-setVideoMode
     mov isPaused, 0
-    mov begin, 0            ; Mahalaga para ang gameLoop ay huminto at makabalik sa StartPage flow
+    mov begin, 0            
     call StartPage
-    ; After StartPage returns (e.g. user exits game), then we exit showPauseMenu
 
 ExitShowPauseMenu_SMP:
     pop di
@@ -3983,8 +4708,7 @@ clearPauseMenu proc
     push si
     push di
 
-    ; --- 1. Erase the Pause Menu Box and Text Area by drawing a black rectangle ---
-    ;    Gagamitin natin yung pauseBoxX, Y, W, H.
+
     mov di, [pauseBoxY]     ; Start Y
     local endY_CPM:word     ; CPM for ClearPauseMenu
     mov ax, [pauseBoxY]
@@ -4008,15 +4732,14 @@ ClearFillLoop_CPM:
     jmp ClearFillLoop_CPM
 DoneClearingBox_CPM:
 
-    ; --- 2. CRITICAL: Redraw all active game elements ---
-    call BuildB             ; Redraw all bricks (kung nagbabago sila, or just the visible ones)
+    call BuildB             
     redrawStriker 13
-    redrawBall 15           ; Redraw ball at its current position
-    call printName          ; Kung naka-display ang pangalan habang naglalaro
+    redrawBall 15           
+    call printName          
 
-    cmp gamemode, 0         ; Check game mode
-    je RedrawLives_CPM      ; If level mode, redraw lives
-    call printTime          ; If timed mode, redraw timer (uses timer_color)
+    cmp gamemode, 0         
+    je RedrawLives_CPM      
+    call printTime          
     jmp EndRedraw_CPM
 
 RedrawLives_CPM:
