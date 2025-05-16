@@ -532,6 +532,7 @@ OpenFile proc
 	mov al, 2
 	mov dx, [bp + 6]
 	int 21h
+	mov bx, [bp + 4]
 	mov [bx], ax
 	mov ax, 1
 	pop bp
