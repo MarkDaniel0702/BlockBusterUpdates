@@ -56,6 +56,7 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	controlE_text db 'EXIT', '$'
 	controlU_text db 'USING', '$'
 	
+	powerplaymode_text db 'POWERPLAY', '$'
 	levelmode_text db 'LEVEL MODE', '$'
 	timedmode_text db 'TIMED MODE','$'
 	options_text db 'OPTIONS','$'
@@ -522,109 +523,691 @@ main endp
 
 
 ; ----------------------------------------
-;              Title Page
+;         Title Page
 ; ----------------------------------------
-OpenFile proc 
-	push bp 
-	mov bp, sp                            ;creates reference point 
-
-	mov ah, 3Dh                           ;open file instruction
-	mov al, 2                             ;read/write access 
-	mov dx, [bp + 6]                      ;sets the offset 
-	int 21h 
-
-	mov bx, [bp + 4]                      ;sets filehandle location 
-	mov [bx], ax                          ;ax = filehandle; moves the filehandle to the memory location of bx
-	mov ax, 1
-	
-	pop bp 
-	ret 
-OpenFile endp 
-
-CloseFile proc 
+OpenFile proc
 	push bp
-	mov bp, sp 
-
-	mov ah, 3Eh
-	mov bx, [bp + 4]                      ;sets file handle location 
+	mov bp, sp
+	mov ah, 3Dh
+	mov al, 2
+	mov dx, [bp + 6]
 	int 21h
+	mov [bx], ax
+	mov ax, 1
+	pop bp
+	ret
+OpenFile endp
 
+CloseFile proc
+	push bp
+	mov bp, sp
+	mov ah, 3Eh
+	mov bx, [bp + 4]
+	int 21h
 	pop bp
 	ret
 CloseFile endp
 
-PrintFullScreenBMP proc 
-	push bp 
-	mov bp, sp 
-	
-;----Set file pointer to start of data----	
+PrintFullScreenBMP proc
+	push bp
+	mov bp, sp
 	mov ah, 42h
-	xor al, al 							  ;sets the absolute byte offset from start of the file 
-	mov bx, [bp + 6]                      ;sets filehandle 
-	xor cx, cx                            ;sets MSB of offset 
-	mov dx, 1077                          ;sets LSB of offset 
+	xor al, al
+	mov bx, [bp + 6]
+	xor cx, cx
+	mov dx, 1077 ; BMP header offset for pixel data (can vary)
 	int 21h
+	mov ax, 0A000h
+	mov es, ax
+	mov di, 0F8BFh ; Start drawing from bottom-left for standard BMP
+	cld
+	mov cx, 200
+readLine:
+	push cx
+	mov ah, 3Fh
+	mov cx, 320
+	mov dx, [bp + 4] ; FileReadBuffer
+	int 21h
+	mov si, dx
+	mov cx, 320
+	rep movsb
+	sub di, 640 ; Move to line above and reset to left
+	pop cx
+	loop readLine
+	pop bp
+	ret
+PrintFullScreenBMP endp
 
-	mov ax, 0A000h                        ;0A000h -> VGA segment address
-	mov es, ax                            ;moves the segment address to es (extra segment register)
-	mov di, 0F8BFh	                      ;sets the offset value from the segment address 
-
-	cld                                   ;clear direction flag -> makes sure that the bytes are getting read in the right direction
-
-	mov cx, 200                           ;height of the image / number of iterations in which readLine is processed
-	readLine:
-		push cx 
-
-		mov ah, 3Fh                       ;read file instruction 
-		mov cx, 320                       ;number of pixels to be read in each line 
-		mov dx, [bp + 4] 				  ;sets offset of buffer area
-		int 21h
-
-		mov si, dx 					      ;sets the buffer area as source location 
-		mov cx, 320                       ;width of the image/ number of bytes (pixel) that will be read per iteration 
-		rep movsb                         ;copies the bytes from the bmp (buffer) to the VGA memory
-
-		sub di, 640                       ;moves the di (destination index/location) to the next line
-
-		pop cx 
-		loop readLine
-
-	pop bp 
-	ret  
-PrintFullScreenBMP endp 
-
-PrintOpeningPage proc  
-	call setVideoMode                     ;clear screen 
+PrintOpeningPage proc
+	call setVideoMode ; Clear screen and set video mode
+	call drawBorder
+	call drawBg
 	
-	printOpening:
-		push offset OpeningFileName       ;places memory address of the bmp to the stack 
-		push offset OpeningFileHandle     ;places the memory address of the file to the stack where the filehandle will be stored
-		call OpenFile                     ;opens the specified file 
+	; Draw Letter B1
+	drawTitle 110, 38, 2, 3, 1
+	drawTitle 102, 32, 3, 3, 1
+	drawTitle 102, 18, 3, 4, 1
+	drawTitle 93, 22, 11, 3, 1
+	drawTitle 90, 29, 3, 6, 1
+	drawTitle 90, 18, 3, 7, 1
+	drawTitle 90, 35, 15, 3, 1
+	drawTitle 93, 29, 11, 3, 1
+	drawTitle 90, 15, 15, 3, 1
+	drawTitle 110, 29, 2, 2, 1
+	drawTitle 110, 23, 2, 2, 1
+	drawTitle 105, 25, 2, 3, 1
+	drawTitle 107, 23, 2, 6, 1
+	drawTitle 108, 14, 1, 1, 1
+	drawTitle 107, 12, 1, 3, 1
+	drawTitle 106, 11, 1, 2, 1
+	drawTitle 109, 14, 1, 25, 1
+	drawTitle 107, 43, 1, 2, 1
+	drawTitle 107, 39, 3, 4, 1
+	drawTitle 105, 41, 2, 4, 1
+	drawTitle 83, 42, 22, 3, 1
+	drawTitle 86, 10, 21, 1, 1
+	drawTitle 85, 10, 1, 32, 1
+	drawTitle 90, 25, 15, 4, 10
+	drawTitle 85, 8, 23, 2, 10
+	drawTitle 90, 11, 15, 4, 10
+	drawTitle 107, 29, 2, 10, 10
+	drawTitle 107, 15, 2, 8, 10
+	drawTitle 110, 31, 2, 7, 10
+	drawTitle 110, 12, 2, 11, 10
+	drawTitle 108, 10, 2, 4, 10
+	drawTitle 107, 10, 1, 2, 10
+	drawTitle 105, 11, 1, 2, 10
+	drawTitle 104, 29, 1, 3, 10
+	drawTitle 104, 22, 1, 3, 10
+	drawTitle 105, 13, 2, 12, 10
+	drawTitle 105, 28, 2, 13, 10
+	drawTitle 90, 38, 15, 4, 10
+	drawTitle 86, 11, 4, 31, 10
+	drawTitle 83, 8, 2, 34, 10
 
-		push [OpeningFileHandle]          ;pushes the value stored at the memory location pointed by the filehandle to the stack 
-		push offset FileReadBuffer        ;pushes the memory address of the buffer area to the stack 
-		call PrintFullScreenBMP           ;prints the bmp image 
+	; Draw Letter L
+	drawTitle 116, 42, 22, 3, 1
+	drawTitle 138, 38, 2, 7, 1
+	drawTitle 126, 36, 14, 2, 1
+	drawTitle 124, 35, 2, 3, 1
+	drawTitle 119, 10, 4, 1, 1
+	drawTitle 123, 10, 1, 28, 1
+	drawTitle 118, 10, 1, 32, 1
+	drawTitle 123, 38, 15, 4, 10
+	drawTitle 119, 11, 4, 31, 10
+	drawTitle 118, 8, 6, 2, 10
+	drawTitle 124, 8, 2, 27, 10
+	drawTitle 116, 8, 2, 34, 10
 
-		push [OpeningFileHandle]          
-		call CloseFile                    ;closes the file with the specified filehandle 
-	
-	getKeyOpening:
-		mov ah, 0h                        ;check keyboard input
-		int 16h
-		cmp ah, 19h                       ;check if P is pressed 
-		je procEndOpening                   
-		cmp ah, 2Eh                       ;check if C is pressed 
-		je procEndOpening1  
-		jmp getKeyOpening                 ;if not, loop to getKeyOpening until P or C is pressed
-		
-	procEndOpening:
-		call addName                      ;calls the next screen where players will input ther name 
-		ret
-	
-	procEndOpening1:
-		call StartPage                    ;calls the controls page
-		ret
-PrintOpeningPage endp 
+	; Draw Letter O
+	drawTitle 151, 42, 15, 3, 1
+	drawTitle 166, 41, 3, 4, 1
+	drawTitle 148, 41, 3, 4, 1
+	drawTitle 171, 38, 3, 3, 1
+	drawTitle 146, 41, 2, 2, 1
+	drawTitle 169, 41, 2, 2, 1
+	drawTitle 168, 38, 3, 3, 1
+	drawTitle 146, 38, 3, 3, 1
+	drawTitle 171, 14, 1, 24, 1
+	drawTitle 145, 16, 1, 24, 1
+	drawTitle 168, 14, 3, 2, 1
+	drawTitle 149, 10, 19, 2, 1
+	drawTitle 168, 12, 2, 2, 1
+	drawTitle 166, 12, 2, 1, 1
+	drawTitle 148, 12, 2, 1, 1
+	drawTitle 147, 12, 1, 2, 1
+	drawTitle 145, 14, 3, 2, 1
+	drawTitle 172, 14, 2, 24, 10
+	drawTitle 170, 12, 4, 2, 10
+	drawTitle 168, 10, 4, 2, 10
+	drawTitle 143, 14, 2, 26, 10
+	drawTitle 143, 12, 4, 2, 10
+	drawTitle 145, 10, 4, 2, 10
+	drawTitle 166, 13, 2, 3, 10
+	drawTitle 165, 16, 6, 22, 10
+	drawTitle 146, 16, 6, 22, 10
+	drawTitle 166, 38, 2, 3, 10
+	drawTitle 149, 38, 2, 3, 10
+	drawTitle 148, 13, 2, 3, 10
+	drawTitle 151, 38, 15, 4, 10
+	drawTitle 150, 12, 16, 4, 10
+	drawTitle 148, 8, 21, 2, 10
+
+	; Draw Letter C
+	drawTitle 199, 14, 2, 1, 1
+	drawTitle 197, 12, 2, 1, 1
+	drawTitle 184, 42, 12, 3, 1
+	drawTitle 196, 41, 3, 4, 1
+	drawTitle 184, 15, 3, 21, 1
+	drawTitle 194, 18, 9, 2, 1
+	drawTitle 187, 15, 9, 3, 1
+	drawTitle 184, 36, 13, 2, 1
+	drawTitle 196, 34, 5, 2, 1
+	drawTitle 201, 36, 2, 4, 1
+	drawTitle 199, 38, 2, 5, 1
+	drawTitle 182, 41, 2, 4, 1
+	drawTitle 179, 38, 3, 5, 1
+	drawTitle 179, 14, 2, 1, 1
+	drawTitle 181, 12, 2, 1, 1
+	drawTitle 196, 11, 1, 2, 1
+	drawTitle 200, 15, 1, 3, 1
+	drawTitle 198, 13, 1, 2, 1
+	drawTitle 179, 15, 1, 23, 1
+	drawTitle 181, 13, 1, 2, 1
+	drawTitle 183, 11, 1, 2, 1
+	drawTitle 183, 10, 14, 1, 1
+	drawTitle 182, 13, 2, 28, 10
+	drawTitle 184, 11, 12, 4, 10
+	drawTitle 194, 32, 9, 2, 10
+	drawTitle 183, 8, 15, 2, 10
+	drawTitle 201, 12, 2, 6, 10
+	drawTitle 184, 38, 12, 4, 10
+	drawTitle 196, 38, 3, 3, 10
+	drawTitle 197, 36, 4, 2, 10
+	drawTitle 201, 34, 2, 2, 10
+	drawTitle 194, 34, 2, 2, 10
+	drawTitle 199, 12, 2, 2, 10
+	drawTitle 197, 10, 4, 2, 10
+	drawTitle 198, 15, 2, 3, 10
+	drawTitle 196, 13, 2, 5, 10
+	drawTitle 181, 8, 2, 4, 10
+	drawTitle 179, 10, 2, 4, 10
+	drawTitle 180, 15, 2, 23, 10
+	drawTitle 177, 13, 2, 27, 10
+
+	; Draw Letter K
+	drawTitle 209, 10, 4, 1, 1
+	drawTitle 231, 11, 1, 2, 1
+	drawTitle 229, 10, 3, 1, 1
+	drawTitle 227, 10, 2, 3, 1
+	drawTitle 227, 43, 5, 2, 1
+	drawTitle 230, 42, 2, 1, 1
+	drawTitle 228, 41, 2, 2, 1
+	drawTitle 226, 39, 2, 4, 1
+	drawTitle 224, 37, 2, 4, 1
+	drawTitle 222, 35, 2, 4, 1
+	drawTitle 220, 33, 2, 3, 1
+	drawTitle 218, 31, 2, 3, 1
+	drawTitle 216, 29, 2, 2, 1
+	drawTitle 213, 29, 2, 13, 1
+	drawTitle 206, 42, 10, 3, 1
+	drawTitle 232, 39, 3, 6, 1
+	drawTitle 232, 38, 1, 1, 1
+	drawTitle 230, 36, 1, 2, 1
+	drawTitle 228, 34, 1, 2, 1
+	drawTitle 226, 32, 1, 2, 1
+	drawTitle 231, 37, 2, 1, 1
+	drawTitle 229, 35, 2, 1, 1
+	drawTitle 227, 33, 2, 1, 1
+	drawTitle 225, 31, 2, 1, 1
+	drawTitle 224, 29, 1, 3, 1
+	drawTitle 222, 28, 2, 2, 1
+	drawTitle 221, 25, 2, 3, 1
+	drawTitle 220, 24, 1, 4, 1
+	drawTitle 221, 23, 4, 2, 1
+	drawTitle 223, 21, 4, 2, 1
+	drawTitle 225, 19, 4, 2, 1
+	drawTitle 227, 17, 4, 2, 1
+	drawTitle 229, 15, 3, 2, 1
+	drawTitle 231, 13, 3, 2, 1
+	drawTitle 225, 12, 2, 3, 1
+	drawTitle 223, 14, 2, 3, 1
+	drawTitle 221, 15, 2, 4, 1
+	drawTitle 219, 18, 2, 1, 1
+	drawTitle 218, 19, 3, 2, 1
+	drawTitle 216, 21, 3, 3, 1
+	drawTitle 214, 23, 2, 1, 1
+	drawTitle 213, 10, 1, 14, 1
+	drawTitle 208, 10, 1, 32, 1
+	drawTitle 225, 8, 9, 2, 10
+	drawTitle 220, 31, 2, 2, 10
+	drawTitle 230, 38, 2, 4, 10
+	drawTitle 228, 36, 2, 5, 10
+	drawTitle 226, 34, 2, 5, 10
+	drawTitle 224, 32, 2, 5, 10
+	drawTitle 233, 37, 2, 2, 10
+	drawTitle 231, 35, 2, 2, 10
+	drawTitle 229, 33, 2, 2, 10
+	drawTitle 227, 31, 2, 2, 10
+	drawTitle 225, 29, 2, 2, 10
+	drawTitle 223, 25, 1, 3, 10
+	drawTitle 224, 27, 2, 2, 10
+	drawTitle 222, 30, 2, 5, 10
+	drawTitle 232, 10, 2, 3, 10
+	drawTitle 225, 10, 2, 2, 10
+	drawTitle 223, 10, 2, 2, 10
+	drawTitle 223, 12, 2, 2, 10
+	drawTitle 221, 13, 2, 2, 10
+	drawTitle 219, 14, 2, 2, 10
+	drawTitle 219, 16, 2, 2, 10
+	drawTitle 217, 17, 2, 2, 10
+	drawTitle 216, 19, 2, 2, 10
+	drawTitle 229, 11, 2, 4, 10
+	drawTitle 227, 13, 2, 4, 10
+	drawTitle 225, 15, 2, 4, 10
+	drawTitle 223, 17, 2, 4, 10
+	drawTitle 221, 19, 2, 4, 10
+	drawTitle 219, 21, 2, 3, 10
+	drawTitle 218, 24, 2, 4, 10
+	drawTitle 218, 28, 4, 3, 10
+	drawTitle 213, 24, 5, 5, 10
+	drawTitle 209, 11, 4, 31, 10
+	drawTitle 214, 8, 2, 15, 10
+	drawTitle 208, 8, 6, 2, 10
+	drawTitle 206, 8, 2, 34, 10
+
+	; Draw Letter B2
+	drawTitle 98, 80, 2, 3, 1
+	drawTitle 90, 74, 3, 3, 1
+	drawTitle 90, 60, 3, 4, 1
+	drawTitle 81, 64, 11, 3, 1
+	drawTitle 78, 71, 3, 6, 1
+	drawTitle 78, 60, 3, 7, 1
+	drawTitle 78, 77, 15, 3, 1
+	drawTitle 81, 71, 11, 3, 1
+	drawTitle 78, 57, 15, 3, 1
+	drawTitle 98, 71, 2, 2, 1
+	drawTitle 98, 65, 2, 2, 1
+	drawTitle 93, 67, 2, 3, 1
+	drawTitle 95, 65, 2, 6, 1
+	drawTitle 96, 56, 1, 1, 1
+	drawTitle 95, 54, 1, 3, 1
+	drawTitle 94, 53, 1, 2, 1
+	drawTitle 97, 56, 1, 25, 1
+	drawTitle 95, 85, 1, 2, 1
+	drawTitle 95, 81, 3, 4, 1
+	drawTitle 93, 83, 2, 4, 1
+	drawTitle 71, 84, 22, 3, 1
+	drawTitle 74, 52, 21, 1, 1
+	drawTitle 73, 52, 1, 32, 1
+	drawTitle 78, 67, 15, 4, 10
+	drawTitle 73, 50, 23, 2, 10
+	drawTitle 78, 53, 15, 4, 10
+	drawTitle 95, 71, 2, 10, 10
+	drawTitle 95, 57, 2, 8, 10
+	drawTitle 98, 73, 2, 7, 10
+	drawTitle 98, 54, 2, 11, 10
+	drawTitle 96, 52, 2, 4, 10
+	drawTitle 95, 52, 1, 2, 10
+	drawTitle 93, 53, 1, 2, 10
+	drawTitle 92, 71, 1, 3, 10
+	drawTitle 92, 64, 1, 3, 10
+	drawTitle 93, 55, 2, 12, 10
+	drawTitle 93, 70, 2, 13, 10
+	drawTitle 78, 80, 15, 4, 10
+	drawTitle 74, 53, 4, 31, 10
+	drawTitle 71, 50, 2, 34, 10
+
+	; Draw Letter U
+	drawTitle 127, 80, 4, 2, 1
+	drawTitle 124, 82, 5, 2, 1
+	drawTitle 103, 80, 5, 2, 1
+	drawTitle 105, 82, 5, 2, 1
+	drawTitle 107, 84, 20, 3, 1
+	drawTitle 112, 77, 10, 3, 1
+	drawTitle 123, 52, 5, 1, 1
+	drawTitle 106, 52, 5, 1, 1
+	drawTitle 128, 52, 1, 28, 1
+	drawTitle 122, 52, 1, 28, 1
+	drawTitle 111, 52, 1, 28, 1
+	drawTitle 105, 52, 1, 28, 1
+	drawTitle 121, 52, 1, 25, 10
+	drawTitle 110, 82, 14, 2, 10
+	drawTitle 108, 80, 19, 2, 10
+	drawTitle 123, 53, 5, 27, 10
+	drawTitle 106, 53, 5, 27, 10
+	drawTitle 112, 52, 1, 25, 10
+	drawTitle 121, 50, 8, 2, 10
+	drawTitle 105, 50, 8, 2, 10
+	drawTitle 129, 50, 2, 30, 10
+	drawTitle 103, 50, 2, 30, 10
+
+	; Draw Letter S
+	drawTitle 141, 59, 3, 7, 1
+	drawTitle 136, 56, 1, 10, 1
+	drawTitle 158, 70, 1, 10, 1
+	drawTitle 138, 84, 19, 3, 1
+	drawTitle 156, 80, 5, 2, 1
+	drawTitle 154, 82, 5, 2, 1
+	drawTitle 137, 82, 4, 2, 1
+	drawTitle 136, 78, 2, 4, 1
+	drawTitle 134, 79, 2, 3, 1
+	drawTitle 141, 78, 11, 2, 1
+	drawTitle 157, 68, 2, 2, 1
+	drawTitle 152, 73, 2, 7, 1
+	drawTitle 136, 77, 7, 1, 1
+	drawTitle 155, 66, 2, 2, 1
+	drawTitle 152, 59, 2, 3, 1
+	drawTitle 144, 64, 11, 2, 1
+	drawTitle 141, 57, 13, 2, 1
+	drawTitle 154, 60, 4, 2, 1
+	drawTitle 158, 59, 3, 3, 1
+	drawTitle 156, 54, 2, 3, 1
+	drawTitle 158, 56, 1, 3, 1
+	drawTitle 155, 53, 1, 2, 1
+	drawTitle 141, 52, 15, 1, 1
+	drawTitle 139, 52, 2, 2, 1
+	drawTitle 136, 68, 5, 2, 1
+	drawTitle 138, 70, 16, 3, 1
+	drawTitle 134, 66, 5, 2, 1
+	drawTitle 137, 56, 1, 1, 1
+	drawTitle 138, 54, 3, 1, 1
+	drawTitle 141, 66, 14, 4, 10
+	drawTitle 154, 57, 4, 3, 10
+	drawTitle 154, 70, 4, 10, 10
+	drawTitle 136, 75, 7, 2, 10
+	drawTitle 141, 80, 13, 4, 10
+	drawTitle 159, 68, 2, 12, 10
+	drawTitle 157, 66, 2, 2, 10
+	drawTitle 155, 64, 2, 2, 10
+	drawTitle 155, 68, 2, 2, 10
+	drawTitle 154, 80, 2, 2, 10
+	drawTitle 138, 78, 3, 4, 10
+	drawTitle 134, 75, 2, 4, 10
+	drawTitle 139, 66, 2, 2, 10
+	drawTitle 155, 55, 1, 2, 10
+	drawTitle 138, 55, 3, 2, 10
+	drawTitle 141, 53, 14, 4, 10
+	drawTitle 137, 57, 4, 9, 10
+	drawTitle 159, 54, 2, 5, 10
+	drawTitle 158, 53, 1, 3, 10
+	drawTitle 156, 52, 2, 2, 10
+	drawTitle 134, 56, 2, 10, 10
+	drawTitle 134, 54, 4, 2, 10
+	drawTitle 135, 52, 4, 2, 10
+	drawTitle 138, 50, 20, 2, 10
+
+	; Draw Letter T
+	drawTitle 187, 53, 1, 2, 1
+	drawTitle 187, 55, 3, 4, 1
+	drawTitle 179, 57, 8, 2, 1
+	drawTitle 167, 57, 8, 2, 1
+	drawTitle 172, 84, 10, 3, 1
+	drawTitle 179, 59, 3, 25, 1
+	drawTitle 172, 59, 3, 25, 1
+	drawTitle 164, 55, 3, 4, 1
+	drawTitle 166, 53, 1, 2, 1
+	drawTitle 166, 52, 22, 1, 1
+	drawTitle 175, 57, 4, 27, 10
+	drawTitle 167, 53, 20, 4, 10
+	drawTitle 166, 50, 22, 2, 10
+	drawTitle 188, 50, 2, 5, 10
+	drawTitle 164, 50, 2, 5, 10
+
+	; Draw Letter E
+	drawTitle 196, 52, 20, 1, 1
+	drawTitle 204, 78, 14, 2, 1
+	drawTitle 201, 70, 14, 2, 1
+	drawTitle 204, 64, 11, 2, 1
+	drawTitle 193, 84, 25, 2, 1
+	drawTitle 201, 57, 14, 2, 1
+	drawTitle 201, 59, 3, 7, 1
+	drawTitle 201, 72, 3, 8, 1
+	drawTitle 212, 66, 3, 4, 1
+	drawTitle 215, 80, 3, 4, 1
+	drawTitle 215, 55, 3, 4, 1
+	drawTitle 215, 53, 1, 2, 1
+	drawTitle 195, 52, 1, 32, 1
+	drawTitle 195, 50, 23, 2, 10
+	drawTitle 196, 80, 19, 4, 10
+	drawTitle 196, 66, 16, 4, 10
+	drawTitle 196, 70, 5, 10, 10
+	drawTitle 196, 57, 5, 9, 10
+	drawTitle 196, 53, 19, 4, 10
+	drawTitle 216, 52, 2, 3, 10
+	drawTitle 193, 50, 2, 34, 10
+
+	; Draw Letter R
+	drawTitle 244, 56, 3, 1, 1
+	drawTitle 242, 54, 2, 1, 1
+	drawTitle 246, 76, 1, 8, 1
+	drawTitle 221, 84, 10, 2, 1
+	drawTitle 239, 84, 10, 2, 1
+	drawTitle 239, 60, 2, 6, 1
+	drawTitle 231, 66, 9, 2, 1
+	drawTitle 231, 57, 10, 3, 1
+	drawTitle 228, 57, 3, 11, 1
+	drawTitle 239, 74, 2, 10, 1
+	drawTitle 231, 72, 8, 3, 1
+	drawTitle 246, 74, 3, 2, 1
+	drawTitle 228, 72, 3, 12, 1
+	drawTitle 243, 72, 3, 2, 1
+	drawTitle 240, 70, 4, 2, 1
+	drawTitle 240, 69, 6, 1, 1
+	drawTitle 243, 66, 6, 3, 1
+	drawTitle 246, 57, 1, 9, 1
+	drawTitle 243, 55, 1, 2, 1
+	drawTitle 241, 53, 1, 2, 1
+	drawTitle 224, 52, 18, 1, 1
+	drawTitle 223, 52, 1, 32, 1
+	drawTitle 247, 55, 2, 11, 10
+	drawTitle 228, 53, 13, 4, 10
+	drawTitle 241, 57, 5, 9, 10
+	drawTitle 228, 68, 12, 4, 10
+	drawTitle 241, 74, 5, 10, 10
+	drawTitle 247, 76, 2, 8, 10
+	drawTitle 240, 72, 3, 2, 10
+	drawTitle 239, 72, 1, 2, 10
+	drawTitle 240, 66, 3, 3, 10
+	drawTitle 241, 55, 2, 2, 10
+	drawTitle 244, 54, 3, 2, 10
+	drawTitle 242, 52, 5, 2, 10
+	drawTitle 223, 50, 21, 2, 10
+	drawTitle 224, 53, 4, 31, 10
+	drawTitle 221, 50, 2, 34, 10
+
+	; “Draw Letter P” - PRESS [P] TO PLAY
+	drawTitle 120, 147, 1, 2, 15
+	drawTitle 117, 149, 3, 1, 15
+	drawTitle 117, 146, 3, 1, 15
+	drawTitle 116, 146, 1, 7, 15
+	; “Draw Letter R”
+	drawTitle 125, 148, 1, 1, 15
+	drawTitle 124, 149, 1, 1, 15
+	drawTitle 123, 148, 1, 5, 15
+	; “Draw Letter E”
+	drawTitle 129, 152, 3, 1, 15
+	drawTitle 129, 150, 2, 1, 15
+	drawTitle 131, 149, 1, 2, 15
+	drawTitle 129, 148, 2, 1, 15
+	drawTitle 128, 149, 1, 3, 15
+	; “Draw Letter S”
+	drawTitle 133, 152, 4, 1, 15
+	drawTitle 136, 151, 2, 1, 15
+	drawTitle 134, 150, 3, 1, 15
+	drawTitle 133, 149, 2, 1, 15
+	drawTitle 134, 148, 4, 1, 15
+	; “Draw Letter S”
+	drawTitle 139, 152, 4, 1, 15
+	drawTitle 142, 151, 2, 1, 15
+	drawTitle 140, 150, 3, 1, 15
+	drawTitle 139, 149, 2, 1, 15
+	drawTitle 140, 148, 4, 1, 15
+	; “Draw Left Bracket”
+	drawTitle 149, 147, 1, 7, 15
+	drawTitle 149, 154, 2, 1, 15
+	drawTitle 149, 146, 2, 1, 15
+	; “Draw Letter P”
+	drawTitle 157, 147, 1, 2, 15
+	drawTitle 154, 149, 3, 1, 15
+	drawTitle 154, 146, 3, 1, 15
+	drawTitle 153, 146, 1, 7, 15
+	; “Draw Right Bracket”
+	drawTitle 162, 147, 1, 7, 15
+	drawTitle 162, 154, 2, 1, 15
+	drawTitle 162, 146, 2, 1, 15
+	; “Draw Letter T”
+	drawTitle 169, 148, 2, 1, 15
+	drawTitle 166, 148, 2, 1, 15
+	drawTitle 168, 152, 2, 1, 15
+	drawTitle 168, 146, 1, 6, 15
+	; “Draw Letter O”
+	drawTitle 174, 149, 1, 3, 15
+	drawTitle 172, 149, 1, 3, 15
+	drawTitle 172, 152, 3, 1, 15
+	drawTitle 172, 148, 3, 1, 15
+	; “Draw Letter P”
+	drawTitle 185, 147, 1, 2, 15
+	drawTitle 182, 149, 3, 1, 15
+	drawTitle 182, 146, 3, 1, 15
+	drawTitle 181, 146, 1, 7, 15
+	; “Draw Letter L”
+	drawTitle 188, 146, 1, 7, 15
+	; “Draw Letter A”
+	drawTitle 194, 148, 1, 5, 15
+	drawTitle 191, 152, 3, 1, 15
+	drawTitle 191, 150, 1, 2, 15
+	drawTitle 191, 149, 3, 1, 15
+	; “Draw Letter Y”
+	drawTitle 198, 151, 1, 3, 15
+	drawTitle 199, 149, 1, 2, 15
+	drawTitle 197, 149, 1, 2, 15
+	drawTitle 200, 148, 1, 1, 15
+	drawTitle 197, 153, 1, 1, 15
+	drawTitle 196, 148, 1, 1, 15
+
+	; “Draw Letter P” - PRESS [C] TO VIEW CONTROLS
+	drawTitle 88, 167, 1, 2, 15
+	drawTitle 85, 169, 3, 1, 15
+	drawTitle 85, 166, 3, 1, 15
+	drawTitle 84, 166, 1, 7, 15
+	; “Draw Letter R”
+	drawTitle 93, 168, 1, 1, 15
+	drawTitle 92, 169, 1, 1, 15
+	drawTitle 91, 168, 1, 5, 15
+	; “Draw Letter E”
+	drawTitle 97, 172, 3, 1, 15
+	drawTitle 97, 170, 2, 1, 15
+	drawTitle 99, 169, 1, 2, 15
+	drawTitle 97, 168, 2, 1, 15
+	drawTitle 96, 169, 1, 3, 15
+	; “Draw Letter S”
+	drawTitle 101, 172, 4, 1, 15
+	drawTitle 104, 171, 2, 1, 15
+	drawTitle 102, 170, 3, 1, 15
+	drawTitle 101, 169, 2, 1, 15 ; Corrected Y from 199
+	drawTitle 102, 168, 4, 1, 15
+	; “Draw Letter S”
+	drawTitle 107, 172, 4, 1, 15
+	drawTitle 110, 171, 2, 1, 15
+	drawTitle 108, 170, 3, 1, 15
+	drawTitle 107, 169, 2, 1, 15
+	drawTitle 108, 168, 4, 1, 15
+	; “Draw Left Bracket”
+	drawTitle 117, 167, 1, 7, 15
+	drawTitle 117, 174, 2, 1, 15
+	drawTitle 117, 166, 2, 1, 15
+	; “Draw Letter C”
+	drawTitle 122, 172, 3, 1, 15       ; A
+	drawTitle 121, 167, 1, 5, 15       ; A
+	drawTitle 122, 166, 3, 1, 15       ; A
+	drawTitle 125, 171, 1, 1, 15       ; A
+	drawTitle 125, 167, 1, 1, 15       ; A
+	; “Draw Right Bracket”
+	drawTitle 130, 167, 1, 7, 15
+	drawTitle 130, 174, 2, 1, 15
+	drawTitle 130, 166, 2, 1, 15
+	; “Draw Letter T”
+	drawTitle 137, 168, 2, 1, 15
+	drawTitle 134, 168, 2, 1, 15
+	drawTitle 136, 172, 2, 1, 15
+	drawTitle 136, 166, 1, 6, 15
+	; “Draw Letter O”
+	drawTitle 142, 169, 1, 3, 15
+	drawTitle 140, 169, 1, 3, 15
+	drawTitle 140, 172, 3, 1, 15
+	drawTitle 140, 168, 3, 1, 15
+	; “Draw Letter V”
+	drawTitle 151, 171, 1, 2, 15
+	drawTitle 152, 169, 1, 2, 15
+	drawTitle 150, 169, 1, 2, 15
+	drawTitle 153, 166, 1, 3, 15
+	drawTitle 149, 166, 1, 3, 15
+	; “Draw Letter I”
+	drawTitle 156, 166, 1, 1, 15
+	drawTitle 156, 168, 1, 5, 15
+	; “Draw Letter E”
+	drawTitle 160, 172, 3, 1, 15
+	drawTitle 160, 170, 2, 1, 15
+	drawTitle 162, 169, 1, 2, 15
+	drawTitle 160, 168, 2, 1, 15
+	drawTitle 159, 169, 1, 3, 15
+	; “Draw Letter W”
+	drawTitle 166, 171, 1, 2, 15
+	drawTitle 168, 171, 1, 2, 15
+	drawTitle 169, 169, 1, 2, 15
+	drawTitle 165, 169, 1, 2, 15
+	drawTitle 167, 168, 1, 3, 15
+	drawTitle 170, 168, 1, 1, 15
+	drawTitle 164, 168, 1, 1, 15
+	; “Draw Letter C” - CONTROLS
+	drawTitle 177, 172, 3, 1, 15       ; A
+	drawTitle 176, 167, 1, 5, 15       ; A
+	drawTitle 177, 166, 3, 1, 15       ; A
+	drawTitle 180, 171, 1, 1, 15       ; A
+	drawTitle 180, 167, 1, 1, 15       ; A
+	; “Draw Letter O”
+	drawTitle 185, 169, 1, 3, 15
+	drawTitle 183, 169, 1, 3, 15
+	drawTitle 183, 172, 3, 1, 15
+	drawTitle 183, 168, 3, 1, 15
+	; “Draw Letter N”
+	drawTitle 189, 168, 2, 1, 15
+	drawTitle 191, 169, 1, 4, 15
+	drawTitle 188, 168, 1, 5, 15
+	; “Draw Letter T”
+	drawTitle 195, 168, 2, 1, 15
+	drawTitle 192, 168, 2, 1, 15
+	drawTitle 194, 172, 2, 1, 15
+	drawTitle 194, 166, 1, 6, 15
+	; “Draw Letter R”
+	drawTitle 200, 168, 1, 1, 15
+	drawTitle 199, 169, 1, 1, 15
+	drawTitle 198, 168, 1, 5, 15
+	; “Draw Letter O”
+	drawTitle 205, 169, 1, 3, 15
+	drawTitle 203, 169, 1, 3, 15
+	drawTitle 203, 172, 3, 1, 15
+	drawTitle 203, 168, 3, 1, 15
+	; “Draw Letter L”
+	drawTitle 209, 166, 1, 7, 15
+	; “Draw Letter S”
+	drawTitle 211, 172, 4, 1, 15
+	drawTitle 214, 171, 2, 1, 15
+	drawTitle 212, 170, 3, 1, 15
+	drawTitle 211, 169, 2, 1, 15
+	drawTitle 212, 168, 4, 1, 15
+	; --- END NEW TITLE DESIGN ---
+
+
+	; Commented out original bitmap loading
+	; printOpening:
+	;	push offset OpeningFileName
+	;	push offset OpeningFileHandle
+	;	call OpenFile
+	;	push [OpeningFileHandle]
+	;	push offset FileReadBuffer
+	;	call PrintFullScreenBMP
+	;	push [OpeningFileHandle]
+	;	call CloseFile
+
+getKeyOpening:
+	mov ah, 0h ; Check keyboard input
+	int 16h
+	cmp ah, 19h ; Check if P is pressed
+	je procEndOpening
+	cmp ah, 2Eh ; Check if C is pressed
+	je procEndOpening1
+	jmp getKeyOpening ; If not, loop to getKeyOpening until P or C is pressed
+
+procEndOpening:
+	call addName ; Calls the next screen where players will input their name
+	ret
+
+procEndOpening1:
+	call StartPage ; Calls the controls page
+	ret
+PrintOpeningPage endp
 
 
 ; ----------------------------------------
@@ -1399,145 +1982,306 @@ menu proc
 	mov ballLeft, 1
 	mov ballUp, 1
 	mov strikerX, 140
-	mov xloc, 147
-	mov yloc, 129
-	mov wid, 25
+	mov xloc, 147       ; X for underline, initially for "LEVEL MODE"
+	mov yloc, 129       ; Y for underline, initially for "LEVEL MODE" (Row 0Fh)
+	mov wid, 25         ; Underline width (covers "LEVEL")
 	mov timeCtr, 0
-	mov tens, 53
-	mov ones, 57
+	mov tens, 53        ; Ascii '5'
+	mov ones, 57        ; Ascii '9'
 	mov scoreCount, 0
 	mov timeScore, 0
 	mov lives, 3
 	mov byte ptr [isPaused], 0
 
 	;---prints the menus---
+    ; Option 1: LEVEL MODE
 	mov ah, 02h
 	mov bh, 00h
-	mov dh, 0Fh
-	mov dl, 0Fh
+	mov dh, 0Fh         ; Row 15
+	mov dl, 0Fh         ; Column 15
 	int 10h
-	
 	mov ah, 09h
 	lea dx, levelmode_text
 	int 21h
-	
+
+    ; Option 2: TIMED MODE
 	mov ah, 02h
 	mov bh, 00h
-	mov dh, 11h
-	mov dl, 0Fh
+	mov dh, 11h         ; Row 17 (0Fh + 2)
+	mov dl, 0Fh         ; Column 15
 	int 10h
-	
 	mov ah, 09h
 	lea dx, timedmode_text
 	int 21h
-	
+
+    ; Option 3: POWERPLAY MODE - NEW
 	mov ah, 02h
 	mov bh, 00h
-	mov dh, 13h
-	mov dl, 11h
+	mov dh, 13h         ; Row 19 (11h + 2)
+	mov dl, 10h         ; Column 14 (adjust for centering if needed)
 	int 10h
-	
+	mov ah, 09h
+	lea dx, powerplaymode_text ; Make sure this variable is defined in .data
+	int 21h
+
+    ; Option 4: OPTIONS
+	mov ah, 02h
+	mov bh, 00h
+	mov dh, 15h         ; Row 21 (13h + 2)
+	mov dl, 11h         ; Column 17
+	int 10h
 	mov ah, 09h
 	lea dx, options_text
 	int 21h
-	
+
+    ; Option 5: EXIT
 	mov ah, 02h
 	mov bh, 00h
-	mov dh, 15h
-	mov dl, 12h
+	mov dh, 17h         ; Row 23 (15h + 2)
+	mov dl, 12h         ; Column 18
 	int 10h
-	
 	mov ah, 09h
 	lea dx, exit_text
 	int 21h
-	
-	call drawSelect                       ;draws the underline on the currently selected menu option 
 
-	select:
-		mov ah, 00h                       ;reads keyboard input 
-		int 16h
-		cmp soundOn, 1                    ;checks if sound is enabled (soundOn=1)
-		jne noSound2                      ;if not, skip the beep sound 
-		call beep
-		
-		noSound2:                        
-		cmp ax, 4800h                     ;checks if up-arrow key is pressed 
-		je up1                            ;if yes, jump to up1
-		cmp ax, 5000h                     ;checks if down-arrow key is pressed 
-		je down1
-		cmp ax, 1C0Dh                     ;checks if enter key is pressed 
-		je selected1
-		
-		;---if down is pressed---
-		down1:
-			cmp opt, 4                    ;checks if the currently selected option is the last option on the menu
-			je back1                      ;if yes, jump to back1 
-			
-			add opt, 1                    ;if not, increase the opt var by 1, indicating that the next option is selected
-			call deleteSelect             ;deletes the underline on the menu 
-			add yloc, 16                  ;changes the y-loc of the underline 
-			call drawSelect               ;draws underline at new position (under new selected option)
-			jmp select                    ;jump to selct to check next key input 
-		
-		;---if up is pressed---
-		up1:
-			cmp opt, 1                    ;checks if the currently selected option is first option on the menu
-			je next1                      ;if yes, jump to next1 
-			
-			sub opt, 1                    ;if not, decrease opt by 1, indicating that the previous option is selected
-			call deleteSelect
-			sub yloc, 16
-			call drawSelect
-			jmp select
-			
-		;---if last option is currently selected && down is pressed---
-		back1:
-			mov opt, 1                    ;sets opt to 1, indicating the first opt is currently selected
-			call deleteSelect
-			mov yloc, 129                 ;129 -> y-loc of first underline 
-			call drawSelect
-			jmp select
-		
-		;---if first option is currently selected && up is pressed---
-		next1:
-			mov opt, 4                    ;sets opt to 4, indicating that the last option is currently selected
-			call deleteSelect
-			mov yloc, 177                 ;177 -> y-loc of last underline  
-			call drawSelect
-			jmp select
-		
-	;---if enter is pressed---
-	selected1:
-		cmp opt, 1                        ;checks if selected option is the first option 
-		je start_level                    ;if yes, jump to start_level to call the next page 
-		cmp opt, 2
-		je start_timed
-		cmp opt, 3
-		je go_options
-		cmp opt, 4
-		je terminate
-		
-	start_level:
-		call levelMenu                    ;calls the level menu for level mode 
-		ret
-	
-	start_timed:
-		call timedMenu                    ;calls the level menu for timed mode 
-		ret
-		
-	go_options:
-		call optionsPage                  ;calls the options page to enable/disable sound 
-		call enable                       ;calls the menu for options page 
-		ret
-	
-	terminate:
-		call setVideoMode                 ;clears screen
-		mov ah, 4Ch                       ;terminate the program 
-		int 21h
-	
-	none:
-		ret
+	call drawSelect
+
+select:
+	mov ah, 00h
+	int 16h
+	cmp soundOn, 1
+	jne noSoundMenuInput
+	call beep
+noSoundMenuInput:
+
+	cmp ax, 4800h           ; checks if up-arrow key is pressed
+	je up1
+	cmp ax, 5000h           ; checks if down-arrow key is pressed
+	je down1
+	cmp ax, 1C0Dh           ; checks if enter key is pressed
+	je selected1
+	jmp select              ; Loop back if no recognized key
+
+down1:
+	cmp opt, 5              ; Now 5 options total
+	je back1
+	add opt, 1
+	call deleteSelect
+	add yloc, 16
+	call drawSelect
+	jmp select
+
+up1:
+	cmp opt, 1
+	je next1
+	sub opt, 1
+	call deleteSelect
+	sub yloc, 16
+	call drawSelect
+	jmp select
+
+back1: ; Loop from last to first
+	mov opt, 1
+	call deleteSelect
+	mov yloc, 129           ; Y-loc for 1st option (LEVEL MODE)
+	call drawSelect
+	jmp select
+
+next1: ; Loop from first to last
+	mov opt, 5              ; Go to the 5th option
+	call deleteSelect
+	mov yloc, 193           ; Y-loc for 5th option (EXIT: 129 + 16*4)
+	call drawSelect
+	jmp select
+
+selected1:
+	cmp opt, 1
+	je start_level
+	cmp opt, 2
+	je start_timed
+	cmp opt, 3              ; New: PowerPlay Mode
+	je start_powerplay      ; Jump to new handler
+	cmp opt, 4              ; Options is now opt 4
+	je go_options
+	cmp opt, 5              ; Exit is now opt 5
+	je terminate
+	jmp select              ; Should not be reached if opt is 1-5
+
+start_level:
+	call levelMenu
+	ret
+
+start_timed:
+	call timedMenu
+	ret
+
+start_powerplay:            ; Handler for PowerPlay Mode
+    mov byte ptr [gamemode], 2 ; Designate gamemode 2 for PowerPlay
+    call powerplayMenu      ; You'll need to create this procedure
+    ret
+
+go_options:
+	call optionsPage
+	; call enable ; 'enable' is likely part of optionsPage or called by it
+	ret
+
+terminate:
+	call setVideoMode
+	mov ah, 4Ch
+	int 21h
+
+none:
+	ret
 menu endp
+
+powerplayMenu proc
+    push ax
+    push bx
+    push cx
+    push dx
+
+    call setVideoMode
+    call drawBorder
+    call drawBg
+    call printName
+
+    ; Display "POWERPLAY MODE" Title
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, 04h     ; Row for title
+    mov dl, 0Eh     ; Column for title (adjust for centering "POWERPLAY MODE")
+    int 10h
+    mov ah, 09h
+    lea dx, powerplaymode_text ; Use the menu text
+    int 21h
+
+    ; --- Display Level options (same as levelMenu/timedMenu) ---
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, 08h     ; Row for Level 1
+    mov dl, 10h     ; Col for Level 1
+    int 10h
+    mov ah, 09h
+    lea dx, level1_text
+    int 21h
+    ; ... (Repeat for Level 2, 3, 4, 5 at dh=0Ah, 0Ch, 0Eh, 10h) ...
+    mov ah, 02h
+	mov bh, 00h
+	mov dh, 0Ah
+	mov dl, 10h
+	int 10h
+	mov ah, 09h
+	lea dx, level2_text
+	int 21h
+
+	mov ah, 02h
+	mov bh, 00h
+	mov dh, 0Ch
+	mov dl, 10h
+	int 10h
+	mov ah, 09h
+	lea dx, level3_text
+	int 21h
+
+	mov ah, 02h
+	mov bh, 00h
+	mov dh, 0Eh
+	mov dl, 10h
+	int 10h
+	mov ah, 09h
+	lea dx, level4_text
+	int 21h
+
+	mov ah, 02h
+	mov bh, 00h
+	mov dh, 10h
+	mov dl, 10h
+	int 10h
+	mov ah, 09h
+	lea dx, level5_text
+	int 21h
+
+    ; --- Display "BACK" option ---
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, 12h     ; Row for Back
+    mov dl, 11h     ; Col for Back
+    int 10h
+    mov ah, 09h
+    lea dx, back_text
+    int 21h
+    ; --- End Display Level options ---
+
+    mov optLevel, 1  ; Default to Level 1 selected
+    mov xloc, 142    ; Underline X for "LEVEL 1"
+    mov yloc, 73     ; Underline Y for "LEVEL 1" (text row 08h)
+    mov wid, 20      ; Underline width
+    call drawSelect
+
+selectPPlayLevelLoop:
+    mov ah, 00h
+    int 16h
+    cmp soundOn, 1
+    jne noSoundPPlayLevel
+    call beep
+noSoundPPlayLevel:
+    cmp ax, 4800h   ; Up
+    je upPPlayLevel
+    cmp ax, 5000h   ; Down
+    je downPPlayLevel
+    cmp ax, 1C0Dh   ; Enter
+    je selectedPPlayLevel
+    jmp selectPPlayLevelLoop
+
+downPPlayLevel:
+    cmp optLevel, 6 ; 5 levels + 1 Back option
+    je firstPPlayLevel
+    inc optLevel
+    call deleteSelect
+    add yloc, 16
+    call drawSelect
+    jmp selectPPlayLevelLoop
+upPPlayLevel:
+    cmp optLevel, 1
+    je lastPPlayLevel
+    dec optLevel
+    call deleteSelect
+    sub yloc, 16
+    call drawSelect
+    jmp selectPPlayLevelLoop
+firstPPlayLevel: ; Loop from last to first
+    mov optLevel, 1
+    call deleteSelect
+    mov yloc, 73    ; Y for Level 1
+    call drawSelect
+    jmp selectPPlayLevelLoop
+lastPPlayLevel: ; Loop from first to last
+    mov optLevel, 6
+    call deleteSelect
+    mov yloc, 153   ; Y for Back (73 + 16*5)
+    call drawSelect
+    jmp selectPPlayLevelLoop
+
+selectedPPlayLevel:
+    cmp optLevel, 6 ; Is "BACK" selected?
+    je goBackToMainMenuFromPPlay
+
+    ; A level (1-5) is selected
+    mov byte ptr [gamemode], 2  ; Set gamemode for PowerPlay
+    ; optLevel variable already holds the chosen level
+    call levelmode              ; Start the game
+    ret                         ; Return after game finishes
+
+goBackToMainMenuFromPPlay:
+    call StartPage ; Go back to main menu
+    ret
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+powerplayMenu endp
 
 
 ; ----------------------------------------
