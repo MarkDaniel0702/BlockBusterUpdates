@@ -59,6 +59,8 @@ EXTERNDELAY = 3                                               ;delay for the mov
 	controlO_text db 'OPTIONS', '$'
 	controlE_text db 'EXIT', '$'
 	controlU_text db 'USING', '$'
+	pause_text    db '[P] Pause Game', '$'
+
 	
 	powerplaymode_text db 'POWERPLAY', '$'
 	levelmode_text db 'LEVEL MODE', '$'
@@ -1946,11 +1948,21 @@ drawControl proc
 	mov ah, 02h                           ;set cursor position instruction 
 	mov bh, 00h                           ;sets the page number 
 	mov dh, 31h                           ;sets the y-location (row position)
-	mov dl, 09h                           ;sets the x-location (column position)
+	mov dl, 00h                           ;sets the x-location (column position)
 	int 10h
 	
 	mov ah, 09h                           ;output string instruction 
 	lea dx, controlB_text                 ;loads the address of the string to be printed
+	int 21h
+	
+	mov ah, 02h                           ;set cursor position instruction 
+	mov bh, 00h                           ;sets the page number 
+	mov dh, 31h                           ;sets the y-location (row position)
+	mov dl, 0Ah                           ;sets the x-location (column position)
+	int 10h
+	
+	mov ah, 09h                           ;output string instruction 
+	lea dx, pause_text                 ;loads the address of the string to be printed
 	int 21h
 	
 	mov ah, 02h
