@@ -2701,316 +2701,153 @@ drawMenuText proc
 drawMenuText endp 
 
 menu proc
-	;---redefine the variables---
-	mov opt, 1
-	mov optLevel, 1
-	mov optCompleted, 1
-	mov optOver, 1
-	mov ballX, 158
-	mov ballY, 163
-	mov ballLeft, 1
-	mov ballUp, 1
-	mov strikerX, 140
-	mov xloc, 147       ; X for underline, initially for "LEVEL MODE"
-	mov yloc, 129       ; Y for underline, initially for "LEVEL MODE" (Row 0Fh)
-	mov wid, 25         ; Underline width (covers "LEVEL")
-	mov timeCtr, 0
-	mov tens, 53        ; Ascii '5'
-	mov ones, 57        ; Ascii '9'
-	mov scoreCount, 0
-	mov timeScore, 0
-	mov lives, 3
-	mov byte ptr [isPaused], 0
+    ;---redefine the variables---
+    mov opt, 1
+    mov optLevel, 1
+    mov optCompleted, 1
+    mov optOver, 1
+    mov ballX, 158
+    mov ballY, 163
+    mov ballLeft, 1
+    mov ballUp, 1
+    mov strikerX, 140
+    mov xloc, 147      ; X for underline, initially for "LEVEL MODE"
+    mov yloc, 129      ; Y for underline, initially for "LEVEL MODE" (Row 0Fh)
+    mov wid, 25        ; Underline width (covers "LEVEL")
+    mov timeCtr, 0
+    mov tens, 53       ; Ascii '5'
+    mov ones, 57       ; Ascii '9'
+    mov scoreCount, 0
+    mov timeScore, 0
+    mov lives, 3
+    mov byte ptr [isPaused], 0
 
-	;---prints the menus---
+    ;---prints the menus---
     ; Option 1: LEVEL MODE
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 0Fh         ; Row 15
-	mov dl, 0Fh         ; Column 15
-	int 10h
-	mov ah, 09h
-	lea dx, levelmode_text
-	int 21h
+    mov ah, 02h
+    mov bh, 00h
+    mov dh, 0Fh        ; Row 15
+    mov dl, 0Fh        ; Column 15
+    int 10h
+    mov ah, 09h
+    lea dx, levelmode_text
+    int 21h
 
     ; Option 2: TIMED MODE
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 11h         ; Row 17 (0Fh + 2)
-	mov dl, 0Fh         ; Column 15
-	int 10h
-	mov ah, 09h
-	lea dx, timedmode_text
-	int 21h
-
-    ; Option 3: POWERPLAY MODE - NEW
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 13h         ; Row 19 (11h + 2)
-	mov dl, 10h         ; Column 14 (adjust for centering if needed)
-	int 10h
-	mov ah, 09h
-	lea dx, powerplaymode_text ; Make sure this variable is defined in .data
-	int 21h
-
-    ; Option 4: OPTIONS
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 15h         ; Row 21 (13h + 2)
-	mov dl, 11h         ; Column 17
-	int 10h
-	mov ah, 09h
-	lea dx, options_text
-	int 21h
-
-    ; Option 5: EXIT
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 17h         ; Row 23 (15h + 2)
-	mov dl, 12h         ; Column 18
-	int 10h
-	mov ah, 09h
-	lea dx, exit_text
-	int 21h
-
-	call drawSelect
-
-select:
-	mov ah, 00h
-	int 16h
-	cmp soundOn, 1
-	jne noSoundMenuInput
-	call beep
-noSoundMenuInput:
-
-	cmp ax, 4800h           ; checks if up-arrow key is pressed
-	je up1
-	cmp ax, 5000h           ; checks if down-arrow key is pressed
-	je down1
-	cmp ax, 1C0Dh           ; checks if enter key is pressed
-	je selected1
-	jmp select              ; Loop back if no recognized key
-
-down1:
-	cmp opt, 5              ; Now 5 options total
-	je back1
-	add opt, 1
-	call deleteSelect
-	add yloc, 16
-	call drawSelect
-	jmp select
-
-up1:
-	cmp opt, 1
-	je next1
-	sub opt, 1
-	call deleteSelect
-	sub yloc, 16
-	call drawSelect
-	jmp select
-
-back1: ; Loop from last to first
-	mov opt, 1
-	call deleteSelect
-	mov yloc, 129           ; Y-loc for 1st option (LEVEL MODE)
-	call drawSelect
-	jmp select
-
-next1: ; Loop from first to last
-	mov opt, 5              ; Go to the 5th option
-	call deleteSelect
-	mov yloc, 193           ; Y-loc for 5th option (EXIT: 129 + 16*4)
-	call drawSelect
-	jmp select
-
-selected1:
-	cmp opt, 1
-	je start_level
-	cmp opt, 2
-	je start_timed
-	cmp opt, 3              ; New: PowerPlay Mode
-	je start_powerplay      ; Jump to new handler
-	cmp opt, 4              ; Options is now opt 4
-	je go_options
-	cmp opt, 5              ; Exit is now opt 5
-	je terminate
-	jmp select              ; Should not be reached if opt is 1-5
-
-start_level:
-	call levelMenu
-	ret
-
-start_timed:
-	call timedMenu
-	ret
-
-start_powerplay:            ; Handler for PowerPlay Mode
-    mov byte ptr [gamemode], 2 ; Designate gamemode 2 for PowerPlay
-    call powerplayMenu      ; You'll need to create this procedure
-    ret
-
-go_options:
-	call optionsPage
-	; call enable ; 'enable' is likely part of optionsPage or called by it
-	ret
-
-terminate:
-	call setVideoMode
-	mov ah, 4Ch
-	int 21h
-
-none:
-	ret
-menu endp
-
-powerplayMenu proc
-    push ax
-    push bx
-    push cx
-    push dx
-
-    call setVideoMode
-    call drawBorder
-    call drawBg
-    call printName
-
-    ; Display "POWERPLAY MODE" Title
     mov ah, 02h
     mov bh, 00h
-    mov dh, 04h     ; Row for title
-    mov dl, 0Eh     ; Column for title (adjust for centering "POWERPLAY MODE")
+    mov dh, 11h        ; Row 17 (0Fh + 2)
+    mov dl, 0Fh        ; Column 15
     int 10h
     mov ah, 09h
-    lea dx, powerplaymode_text ; Use the menu text
+    lea dx, timedmode_text
     int 21h
 
-    ; --- Display Level options (same as levelMenu/timedMenu) ---
+    ; Option 3: OPTIONS (Formerly Option 4)
     mov ah, 02h
     mov bh, 00h
-    mov dh, 08h     ; Row for Level 1
-    mov dl, 10h     ; Col for Level 1
+    mov dh, 13h        ; Row 19 (11h + 2) - Moved up
+    mov dl, 11h        ; Column 17
     int 10h
     mov ah, 09h
-    lea dx, level1_text
+    lea dx, options_text
     int 21h
-    ; ... (Repeat for Level 2, 3, 4, 5 at dh=0Ah, 0Ch, 0Eh, 10h) ...
-    mov ah, 02h
-	mov bh, 00h
-	mov dh, 0Ah
-	mov dl, 10h
-	int 10h
-	mov ah, 09h
-	lea dx, level2_text
-	int 21h
 
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 0Ch
-	mov dl, 10h
-	int 10h
-	mov ah, 09h
-	lea dx, level3_text
-	int 21h
-
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 0Eh
-	mov dl, 10h
-	int 10h
-	mov ah, 09h
-	lea dx, level4_text
-	int 21h
-
-	mov ah, 02h
-	mov bh, 00h
-	mov dh, 10h
-	mov dl, 10h
-	int 10h
-	mov ah, 09h
-	lea dx, level5_text
-	int 21h
-
-    ; --- Display "BACK" option ---
+    ; Option 4: EXIT (Formerly Option 5)
     mov ah, 02h
     mov bh, 00h
-    mov dh, 12h     ; Row for Back
-    mov dl, 11h     ; Col for Back
+    mov dh, 15h        ; Row 21 (13h + 2) - Moved up
+    mov dl, 12h        ; Column 18
     int 10h
     mov ah, 09h
-    lea dx, back_text
+    lea dx, exit_text
     int 21h
-    ; --- End Display Level options ---
 
-    mov optLevel, 1  ; Default to Level 1 selected
-    mov xloc, 142    ; Underline X for "LEVEL 1"
-    mov yloc, 73     ; Underline Y for "LEVEL 1" (text row 08h)
-    mov wid, 20      ; Underline width
     call drawSelect
 
-selectPPlayLevelLoop:
+select:
     mov ah, 00h
     int 16h
     cmp soundOn, 1
-    jne noSoundPPlayLevel
+    jne noSoundMenuInput
     call beep
-noSoundPPlayLevel:
-    cmp ax, 4800h   ; Up
-    je upPPlayLevel
-    cmp ax, 5000h   ; Down
-    je downPPlayLevel
-    cmp ax, 1C0Dh   ; Enter
-    je selectedPPlayLevel
-    jmp selectPPlayLevelLoop
+noSoundMenuInput:
 
-downPPlayLevel:
-    cmp optLevel, 6 ; 5 levels + 1 Back option
-    je firstPPlayLevel
-    inc optLevel
+    cmp ax, 4800h      ; checks if up-arrow key is pressed
+    je up1
+    cmp ax, 5000h      ; checks if down-arrow key is pressed
+    je down1
+    cmp ax, 1C0Dh      ; checks if enter key is pressed
+    je selected1
+    jmp select         ; Loop back if no recognized key
+
+down1:
+    cmp opt, 4         ; Now 4 options total
+    je back1
+    add opt, 1
     call deleteSelect
     add yloc, 16
     call drawSelect
-    jmp selectPPlayLevelLoop
-upPPlayLevel:
-    cmp optLevel, 1
-    je lastPPlayLevel
-    dec optLevel
+    jmp select
+
+up1:
+    cmp opt, 1
+    je next1
+    sub opt, 1
     call deleteSelect
     sub yloc, 16
     call drawSelect
-    jmp selectPPlayLevelLoop
-firstPPlayLevel: ; Loop from last to first
-    mov optLevel, 1
+    jmp select
+
+back1: ; Loop from last to first
+    mov opt, 1
     call deleteSelect
-    mov yloc, 73    ; Y for Level 1
+    mov yloc, 129      ; Y-loc for 1st option (LEVEL MODE)
     call drawSelect
-    jmp selectPPlayLevelLoop
-lastPPlayLevel: ; Loop from first to last
-    mov optLevel, 6
+    jmp select
+
+next1: ; Loop from first to last
+    mov opt, 4         ; Go to the 4th option (EXIT)
     call deleteSelect
-    mov yloc, 153   ; Y for Back (73 + 16*5)
+    mov yloc, 177      ; Y-loc for 4th option (EXIT: 129 + 16*3)
     call drawSelect
-    jmp selectPPlayLevelLoop
+    jmp select
 
-selectedPPlayLevel:
-    cmp optLevel, 6 ; Is "BACK" selected?
-    je goBackToMainMenuFromPPlay
+selected1:
+    cmp opt, 1
+    je start_level
+    cmp opt, 2
+    je start_timed
+    cmp opt, 3         ; Options is now opt 3
+    je go_options
+    cmp opt, 4         ; Exit is now opt 4
+    je terminate
+    jmp select         ; Should not be reached if opt is 1-4
 
-    ; A level (1-5) is selected
-    mov byte ptr [gamemode], 2  ; Set gamemode for PowerPlay
-    ; optLevel variable already holds the chosen level
-    call levelmode              ; Start the game
-    ret                         ; Return after game finishes
-
-goBackToMainMenuFromPPlay:
-    call StartPage ; Go back to main menu
+start_level:
+    call levelMenu
     ret
 
-    pop dx
-    pop cx
-    pop bx
-    pop ax
+start_timed:
+    call timedMenu
     ret
-powerplayMenu endp
+
+; Removed start_powerplay section as the option is removed
+
+go_options:
+    call optionsPage
+    ; call enable ; 'enable' is likely part of optionsPage or called by it
+    ret
+
+terminate:
+    call setVideoMode
+    mov ah, 4Ch
+    int 21h
+
+none:
+    ret
+menu endp
+
 
 
 ; ----------------------------------------
